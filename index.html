@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Калькулятор цветовой маркировки резисторов</title>
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+    
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        color: #333;
+    }
+    
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+    }
+    
+    h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    
+    .resistor-display {
+        text-align: center;
+        margin: 30px 0;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+    
+    .resistor-svg {
+        width: 100%;
+        max-width: 400px;
+        height: 120px;
+    }
+    
+    .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .control-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    label {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #2c3e50;
+    }
+    
+    select {
+        padding: 10px;
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        font-size: 16px;
+        background: white;
+        transition: border-color 0.3s;
+    }
+    
+    select:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+    
+    .result {
+        background: #2c3e50;
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        margin-top: 20px;
+        font-size: 18px;
+    }
+    
+    .result-value {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px 0;
+        color: #e74c3c;
+    }
+    
+    .color-palette {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        margin: 20px 0;
+    }
+    
+    .color-item {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        border-radius: 20px;
+        background: #f8f9fa;
+    }
+    
+    .color-box {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 8px;
+        border: 2px solid #ddd;
+    }
+    
+    .band-count-selector {
+        display: flex;
+        gap: 10px;
+        margin: 20px 0;
+        justify-content: center;
+    }
+    
+    .band-count-btn {
+        padding: 10px 20px;
+        border: 2px solid #3498db;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .band-count-btn.active {
+        background: #3498db;
+        color: white;
+    }
+    
+    .calculation-steps {
+        background: #ecf0f1;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        font-size: 14px;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 Калькулятор цветовой маркировки резисторов</h1>
+        
+        <div class="color-palette" id="colorPalette"></div>
+        
+        <div class="resistor-display">
+            <svg class="resistor-svg" viewBox="0 0 400 120" id="resistorSvg">
+                <!-- Тело резистора -->
+                <rect x="50" y="40" width="300" height="40" fill="#dcdde1" rx="5" ry="5" stroke="#7f8c8d" stroke-width="2"/>
+                
+                <!-- Выводы -->
+                <rect x="0" y="55" width="50" height="10" fill="#95a5a6"/>
+                <rect x="350" y="55" width="50" height="10" fill="#95a5a6"/>
+                
+                <!-- Полосы (6 штук) -->
+                <rect id="band1" x="80" y="35" width="15" height="50" fill="black" style="display: none;"/>
+                <rect id="band2" x="110" y="35" width="15" height="50" fill="black" style="display: none;"/>
+                <rect id="band3" x="140" y="35" width="15" height="50" fill="black" style="display: none;"/>
+                <rect id="band4" x="170" y="35" width="15" height="50" fill="black" style="display: none;"/>
+                <rect id="band5" x="200" y="35" width="15" height="50" fill="black" style="display: none;"/>
+                <rect id="band6" x="230" y="35" width="15" height="50" fill="black" style="display: none;"/>
+            </svg>
+        </div>
+        
+        <div class="band-count-selector">
+            <div class="band-count-btn active" data-count="4">4 полосы</div>
+            <div class="band-count-btn" data-count="5">5 полос</div>
+            <div class="band-count-btn" data-count="6">6 полос</div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="band1Select">Полоса 1 (первая цифра)</label>
+                <select id="band1Select"></select>
+            </div>
+            
+            <div class="control-group">
+                <label for="band2Select">Полоса 2 (вторая цифра)</label>
+                <select id="band2Select"></select>
+            </div>
+            
+            <div class="control-group">
+                <label for="band3Select">Полоса 3 (третья цифра/множитель)</label>
+                <select id="band3Select"></select>
+            </div>
+            
+            <div class="control-group">
+                <label for="band4Select">Полоса 4 (множитель/точность)</label>
+                <select id="band4Select"></select>
+            </div>
+            
+            <div class="control-group" id="band5Group" style="display: none;">
+                <label for="band5Select">Полоса 5 (точность)</label>
+                <select id="band5Select"></select>
+            </div>
+            
+            <div class="control-group" id="band6Group" style="display: none;">
+                <label for="band6Select">Полоса 6 (ТКС)</label>
+                <select id="band6Select"></select>
+            </div>
+        </div>
+        
+        <div class="result">
+            <div>Значение резистора:</div>
+            <div class="result-value" id="resistanceValue">0 Ω</div>
+            <div id="toleranceValue"></div>
+            <div id="rangeValue"></div>
+        </div>
+        
+        <div class="calculation-steps" id="calculationSteps">
+            Выберите цвета полос для расчёта сопротивления
+        </div>
+    </div>
+
+    <script>
+        // Цветовая кодировка резисторов
+        const colorCodes = {
+            Black: { value: 0, multiplier: 1, tolerance: null, color: '#000000' },
+            Brown: { value: 1, multiplier: 10, tolerance: 1, color: '#8B4513' },
+            Red: { value: 2, multiplier: 100, tolerance: 2, color: '#FF0000' },
+            Orange: { value: 3, multiplier: 1000, tolerance: null, color: '#FFA500' },
+            Yellow: { value: 4, multiplier: 10000, tolerance: null, color: '#FFFF00' },
+            Green: { value: 5, multiplier: 100000, tolerance: 0.5, color: '#008000' },
+            Blue: { value: 6, multiplier: 1000000, tolerance: 0.25, color: '#0000FF' },
+            Violet: { value: 7, multiplier: 10000000, tolerance: 0.1, color: '#EE82EE' },
+            Gray: { value: 8, multiplier: 100000000, tolerance: 0.05, color: '#808080' },
+            White: { value: 9, multiplier: 1000000000, tolerance: null, color: '#FFFFFF' },
+            Gold: { value: null, multiplier: 0.1, tolerance: 5, color: '#FFD700' },
+            Silver: { value: null, multiplier: 0.01, tolerance: 10, color: '#C0C0C0' }
+        };
+
+        let currentBandCount = 4;
+
+        // Инициализация цветовой палитры
+        function initColorPalette() {
+            const palette = document.getElementById('colorPalette');
+            Object.keys(colorCodes).forEach(colorName => {
+                const colorItem = document.createElement('div');
+                colorItem.className = 'color-item';
+                
+                const colorBox = document.createElement('div');
+                colorBox.className = 'color-box';
+                colorBox.style.backgroundColor = colorCodes[colorName].color;
+                
+                const colorText = document.createElement('span');
+                colorText.textContent = colorName;
+                
+                colorItem.appendChild(colorBox);
+                colorItem.appendChild(colorText);
+                palette.appendChild(colorItem);
+            });
+        }
+
+        // Заполнение выпадающих списков
+        function populateSelects() {
+            const selects = ['band1Select', 'band2Select', 'band3Select', 'band4Select', 'band5Select', 'band6Select'];
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '';
+                
+                Object.keys(colorCodes).forEach(colorName => {
+                    const option = document.createElement('option');
+                    option.value = colorName;
+                    option.textContent = colorName;
+                    option.style.color = colorCodes[colorName].color;
+                    select.appendChild(option);
+                });
+            });
+            
+            // Установка значений по умолчанию для 4-полосной маркировки
+            document.getElementById('band1Select').value = 'Brown';
+            document.getElementById('band2Select').value = 'Black';
+            document.getElementById('band3Select').value = 'Red';
+            document.getElementById('band4Select').value = 'Gold';
+        }
+
+        // Обновление видимости полос в зависимости от выбранного количества
+        function updateBandVisibility() {
+            // Скрываем все полосы
+            for (let i = 1; i <= 6; i++) {
+                const band = document.getElementById(`band${i}`);
+                band.style.display = 'none';
+            }
+            
+            // Показываем нужное количество полос
+            for (let i = 1; i <= currentBandCount; i++) {
+                const band = document.getElementById(`band${i}`);
+                band.style.display = 'block';
+            }
+            
+            // Обновляем видимость групп выбора
+            document.getElementById('band5Group').style.display = currentBandCount >= 5 ? 'block' : 'none';
+            document.getElementById('band6Group').style.display = currentBandCount >= 6 ? 'block' : 'none';
+        }
+
+        // Обновление цветов полос на резисторе
+        function updateBandColors() {
+            for (let i = 1; i <= currentBandCount; i++) {
+                const select = document.getElementById(`band${i}Select`);
+                const band = document.getElementById(`band${i}`);
+                if (select && band) {
+                    band.style.fill = colorCodes[select.value].color;
+                }
+            }
+        }
+
+        // Расчет сопротивления
+        function calculateResistance() {
+            let resistance = 0;
+            let tolerance = null;
+            let steps = [];
+            
+            if (currentBandCount === 4) {
+                // 4-полосная маркировка: цифра-цифра-множитель-точность
+                const digit1 = colorCodes[document.getElementById('band1Select').value].value;
+                const digit2 = colorCodes[document.getElementById('band2Select').value].value;
+                const multiplier = colorCodes[document.getElementById('band3Select').value].multiplier;
+                tolerance = colorCodes[document.getElementById('band4Select').value].tolerance;
+                
+                resistance = (digit1 * 10 + digit2) * multiplier;
+                steps.push(`Первая цифра: ${digit1}`);
+                steps.push(`Вторая цифра: ${digit2}`);
+                steps.push(`Множитель: ×${multiplier}`);
+                if (tolerance) steps.push(`Допуск: ±${tolerance}%`);
+            }
+            else if (currentBandCount === 5) {
+                // 5-полосная маркировка: цифра-цифра-цифра-множитель-точность
+                const digit1 = colorCodes[document.getElementById('band1Select').value].value;
+                const digit2 = colorCodes[document.getElementById('band2Select').value].value;
+                const digit3 = colorCodes[document.getElementById('band3Select').value].value;
+                const multiplier = colorCodes[document.getElementById('band4Select').value].multiplier;
+                tolerance = colorCodes[document.getElementById('band5Select').value].tolerance;
+                
+                resistance = (digit1 * 100 + digit2 * 10 + digit3) * multiplier;
+                steps.push(`Первая цифра: ${digit1}`);
+                steps.push(`Вторая цифра: ${digit2}`);
+                steps.push(`Третья цифра: ${digit3}`);
+                steps.push(`Множитель: ×${multiplier}`);
+                if (tolerance) steps.push(`Допуск: ±${tolerance}%`);
+            }
+            else if (currentBandCount === 6) {
+                // 6-полосная маркировка: цифра-цифра-цифра-множитель-точность-ТКС
+                const digit1 = colorCodes[document.getElementById('band1Select').value].value;
+                const digit2 = colorCodes[document.getElementById('band2Select').value].value;
+                const digit3 = colorCodes[document.getElementById('band3Select').value].value;
+                const multiplier = colorCodes[document.getElementById('band4Select').value].multiplier;
+                tolerance = colorCodes[document.getElementById('band5Select').value].tolerance;
+                
+                resistance = (digit1 * 100 + digit2 * 10 + digit3) * multiplier;
+                steps.push(`Первая цифра: ${digit1}`);
+                steps.push(`Вторая цифра: ${digit2}`);
+                steps.push(`Третья цифра: ${digit3}`);
+                steps.push(`Множитель: ×${multiplier}`);
+                if (tolerance) steps.push(`Допуск: ±${tolerance}%`);
+                steps.push(`6-я полоса: ТКС (температурный коэффициент)`);
+            }
+            
+            // Форматирование результата
+            let formattedResistance = '';
+            if (resistance >= 1000000) {
+                formattedResistance = (resistance / 1000000).toFixed(2) + ' MΩ';
+            } else if (resistance >= 1000) {
+                formattedResistance = (resistance / 1000).toFixed(2) + ' kΩ';
+            } else {
+                formattedResistance = resistance.toFixed(2) + ' Ω';
+            }
+            
+            document.getElementById('resistanceValue').textContent = formattedResistance;
+            
+            if (tolerance) {
+                const minResistance = resistance * (1 - tolerance/100);
+                const maxResistance = resistance * (1 + tolerance/100);
+                
+                let formattedMin = '';
+                if (minResistance >= 1000000) {
+                    formattedMin = (minResistance / 1000000).toFixed(2) + ' MΩ';
+                } else if (minResistance >= 1000) {
+                    formattedMin = (minResistance / 1000).toFixed(2) + ' kΩ';
+                } else {
+                    formattedMin = minResistance.toFixed(2) + ' Ω';
+                }
+                
+                let formattedMax = '';
+                if (maxResistance >= 1000000) {
+                    formattedMax = (maxResistance / 1000000).toFixed(2) + ' MΩ';
+                } else if (maxResistance >= 1000) {
+                    formattedMax = (maxResistance / 1000).toFixed(2) + ' kΩ';
+                } else {
+                    formattedMax = maxResistance.toFixed(2) + ' Ω';
+                }
+                
+                document.getElementById('toleranceValue').textContent = `Допуск: ±${tolerance}%`;
+                document.getElementById('rangeValue').textContent = `Диапазон: ${formattedMin} - ${formattedMax}`;
+            } else {
+                document.getElementById('toleranceValue').textContent = '';
+                document.getElementById('rangeValue').textContent = '';
+            }
+            
+            document.getElementById('calculationSteps').textContent = steps.join(' → ');
+        }
+
+        // Инициализация
+        function init() {
+            initColorPalette();
+            populateSelects();
+            updateBandVisibility();
+            updateBandColors();
+            calculateResistance();
+            
+            // Обработчики событий
+            const selects = ['band1Select', 'band2Select', 'band3Select', 'band4Select', 'band5Select', 'band6Select'];
+            selects.forEach(selectId => {
+                document.getElementById(selectId).addEventListener('change', () => {
+                    updateBandColors();
+                    calculateResistance();
+                });
+            });
+            
+            // Обработчики для переключения количества полос
+            document.querySelectorAll('.band-count-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.band-count-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentBandCount = parseInt(btn.dataset.count);
+                    updateBandVisibility();
+                    updateBandColors();
+                    calculateResistance();
+                });
+            });
+        }
+
+        // Запуск при загрузке страницы
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
