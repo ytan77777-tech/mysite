@@ -1,1 +1,83 @@
-
+Create wire-calculator.html
+Co-Authored-By: yoichang777-sys <245403385+yoichang777-sys@users.noreply.github.com>
+Signed-off-by: ytan77777-tech <ytan77777@gmail.com>
+44c7a88
+wire-calculator.html
+@@ -0,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор электрического провода — ElectroCalc</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 80px 20px 40px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        h1 { text-align: center; margin-bottom: 30px; color: #2c3e50; font-size: 36px; }
+        
+        .calculator-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+        
+        @media (max-width: 768px) { .calculator-grid { grid-template-columns: 1fr; } }
+        
+        .input-section, .result-section { background: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #e9ecef; }
+        
+        .input-group { margin-bottom: 15px; }
+        
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #495057; }
+        
+        input, select { width: 100%; padding: 10px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; }
+        
+        input:focus, select:focus { outline: none; border-color: #667eea; }
+        
+        .installation-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+        
+        .installation-option { background: white; padding: 15px; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer; transition: all 0.3s; }
+        
+        .installation-option.selected { border-color: #667eea; background: #e7f3ff; }
+        
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        
+        .result-item { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; }
+        
+        .result-value { font-size: 18px; font-weight: bold; color: #2c3e50; margin-top: 5px; }
+        
+        .result-unit { color: #6c757d; font-size: 12px; }
+        
+        .info-section { background: #e7f3ff; padding: 15px; border-radius: 10px; margin-top: 20px; }
+        
+        .wire-visualization { background: white; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center; }
+        
+        .wire-diagram { width: 300px; height: 100px; margin: 0 auto; position: relative; }
+        
+        .conductor { position: absolute; border-radius: 50%; background: #B87333; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        
+        .insulation-layer { position: absolute; border-radius: 50%; border: 2px solid; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #ffc107; }
+        
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 25px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; transition: transform 0.3s; margin-top: 10px; }
+        
+        button:hover { transform: translateY(-2px); }
+        
+        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; color: #495057; border-bottom: 2px solid #667eea; padding-bottom: 5px; }
+        
+        .frequency-group { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: end; }
+        
+        .skin-depth-result { background: #d4edda; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 12px; }
