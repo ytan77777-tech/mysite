@@ -75,3 +75,509 @@
         .frequency-group { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: end; }
         
         .skin-depth-result { background: #d4edda; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 12px; }
+        
+        .material-info { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+        
+        .material-color { width: 15px; height: 15px; border-radius: 50%; border: 1px solid #ccc; }
+        
+        .thermal-info { background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 12px; }
+        
+        .installation-factor { font-weight: bold; color: #d9534f; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Калькулятор электрического провода</h1>
+        
+        <div class="calculator-grid">
+            <div class="input-section">
+                <div class="section-title">Основные параметры</div>
+                
+                <div class="input-group">
+                    <label for="diameter">Диаметр провода (мм):</label>
+                    <input type="number" id="diameter" step="0.001" placeholder="Введите диаметр">
+                </div>
+                
+                <div class="input-group">
+                    <label for="awg">AWG (American Wire Gauge):</label>
+                    <input type="number" id="awg" step="0.1" placeholder="Введите AWG">
+                </div>
+                
+                <div class="input-group">
+                    <label for="area">Площадь сечения (мм²):</label>
+                    <input type="number" id="area" step="0.01" placeholder="Введите площадь">
+                </div>
+                
+                <div class="input-group">
+                    <label for="current">Ток нагрузки (А):</label>
+                    <input type="number" id="current" step="0.1" placeholder="Введите ток">
+                </div>
+                
+                <div class="input-group">
+                    <label for="material">Материал провода:</label>
+                    <select id="material">
+                        <option value="silver">Серебро</option>
+                        <option value="gold">Золото</option>
+                        <option value="copper" selected>Медь</option>
+                        <option value="aluminum">Алюминий</option>
+                    </select>
+                </div>
+                
+                <div class="section-title">Изоляция провода</div>
+                
+                <div class="input-group">
+                    <label for="insulationType">Тип изоляции:</label>
+                    <select id="insulationType">
+                        <option value="pvc">ПВХ (до 70°C)</option>
+                        <option value="xlpe">Сшитый полиэтилен (до 90°C)</option>
+                        <option value="rubber">Резина (до 60°C)</option>
+                        <option value="teflon">Тефлон (до 200°C)</option>
+                        <option value="silk">Шёлк (до 105°C)</option>
+                        <option value="enamel">Эмаль (до 155°C)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="insulationLayers">Количество слоёв изоляции:</label>
+                    <select id="insulationLayers">
+                        <option value="1">1 слой</option>
+                        <option value="2">2 слоя (двойная изоляция)</option>
+                        <option value="3">3 слоя (усиленная изоляция)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="insulationThickness">Толщина изоляции (мм):</label>
+                    <input type="number" id="insulationThickness" value="0.5" step="0.1" min="0.1" max="5">
+                </div>
+
+                <div class="section-title">Условия прокладки</div>
+                
+                <div class="installation-options">
+                    <div class="installation-option selected" data-type="air">
+                        <strong>В воздухе</strong><br>Открытая прокладка
+                    </div>
+                    <div class="installation-option" data-type="conduit">
+                        <strong>В трубе</strong><br>Кабель-канал, труба
+                    </div>
+                    <div class="installation-option" data-type="wall">
+                        <strong>В стене</strong><br>Скрытая прокладка
+                    </div>
+                    <div class="installation-option" data-type="ground">
+                        <strong>В земле</strong><br>Подземная прокладка
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="ambientTemp">Температура окружения (°C):</label>
+                    <input type="number" id="ambientTemp" value="25" step="1" min="-20" max="60">
+                </div>
+                
+                <div class="input-group">
+                    <label for="bundleSize">Количество проводов в пучке:</label>
+                    <input type="number" id="bundleSize" value="1" step="1" min="1" max="20">
+                </div>
+
+                <div class="section-title">Электрические параметры</div>
+                
+                <div class="frequency-group">
+                    <div>
+                        <label for="frequency">Частота тока (Гц):</label>
+                        <input type="number" id="frequency" value="0" step="1" placeholder="0 для постоянного тока">
+                    </div>
+                    <div>
+                        <label for="voltage">Напряжение (В):</label>
+                        <input type="number" id="voltage" value="220" step="1">
+                    </div>
+                </div>
+
+                <button onclick="calculateAll()">Рассчитать все параметры</button>
+                <button onclick="clearAll()" style="background: #6c757d;">Очистить все</button>
+            </div>
+            
+            <div class="result-section">
+                <div class="section-title">Результаты расчёта</div>
+                
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div>Диаметр провода</div>
+                        <div class="result-value" id="resultDiameter">-</div>
+                        <div class="result-unit">мм</div>
+                    </div>
+                    
+                    <div class="result-item">
+                        <div>Диаметр с изоляцией</div>
+                        <div class="result-value" id="resultDiameterInsulated">-</div>
+                        <div class="result-unit">мм</div>
+                    </div>
+                    
+                    <div class="result-item">
+                        <div>AWG</div>
+                        <div class="result-value" id="resultAWG">-</div>
+                        <div class="result-unit">калибр</div>
+                    </div>
+                    
+                    <div class="result-item">
+                        <div>Площадь сечения</div>
+                        <div class="result-value" id="resultArea">-</div>
+                        <div class="result-unit">мм²</div>
+                    </div>
+                    
+                    <div class="result-item">
+                        <div>Максимальный ток</div>
+                        <div class="result-value" id="resultCurrent">-</div>
+                        <div class="result-unit">А</div>
+                    </div>
+                    
+                    <div class="result-item">
+                        <div>Падение напряжения</div>
+                        <div class="result-value" id="resultVoltageDrop">-</div>
+                        <div class="result-unit">В/100м</div>
+                    </div>
+                    
+                    <div class="result-item">
+                        <div>Сопротивление</div>
+                        <div class="result-value" id="resultResistance">-</div>
+                        <div class="result-unit">Ом/100м</div>
+                    </div>
+                    
+                    <div class="result-item">
+                        <div>Мощность потерь</div>
+                        <div class="result-value" id="resultPowerLoss">-</div>
+                        <div class="result-unit">Вт/100м</div>
+                    </div>
+                </div>
+                
+                <div class="wire-visualization">
+                    <div class="section-title">Визуализация провода</div>
+                    <div class="wire-diagram" id="wireDiagram">
+                        <!-- Диаграмма будет создана JavaScript -->
+                    </div>
+                </div>
+                
+                <div id="skinEffectInfo"></div>
+                <div id="thermalInfo"></div>
+                
+                <div class="info-section">
+                    <div class="section-title">Дополнительная информация</div>
+                    <div id="additionalInfo">Введите параметры для расчёта</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <div class="section-title">📋 Коэффициенты условий прокладки</div>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <thead>
+                        <tr style="background: #667eea; color: white;">
+                            <th style="padding: 8px;">Условие</th>
+                            <th style="padding: 8px;">Коэффициент</th>
+                            <th style="padding: 8px;">Описание</th>
+                            <th style="padding: 8px;">Макс. ток</th>
+                        </tr>
+                    </thead>
+                    <tbody id="installationTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const materialProperties = {
+            'silver': { resistivity: 1.59e-8, tempCoefficient: 0.0038, density: 10.49, color: '#C0C0C0', name: 'Серебро', baseCurrent: 12.5, maxTemp: 200 },
+            'gold': { resistivity: 2.44e-8, tempCoefficient: 0.0034, density: 19.32, color: '#FFD700', name: 'Золото', baseCurrent: 9.5, maxTemp: 150 },
+            'copper': { resistivity: 1.68e-8, tempCoefficient: 0.00393, density: 8.96, color: '#B87333', name: 'Медь', baseCurrent: 10, maxTemp: 180 },
+            'aluminum': { resistivity: 2.82e-8, tempCoefficient: 0.00429, density: 2.70, color: '#A9A9A9', name: 'Алюминий', baseCurrent: 7, maxTemp: 150 }
+        };
+
+        const insulationProperties = {
+            'pvc': { name: 'ПВХ', maxTemp: 70, color: '#FF6B6B', thermalResistance: 0.15 },
+            'xlpe': { name: 'Сшитый полиэтилен', maxTemp: 90, color: '#4ECDC4', thermalResistance: 0.10 },
+            'rubber': { name: 'Резина', maxTemp: 60, color: '#FFD166', thermalResistance: 0.20 },
+            'teflon': { name: 'Тефлон', maxTemp: 200, color: '#06D6A0', thermalResistance: 0.05 },
+            'silk': { name: 'Шёлк', maxTemp: 105, color: '#F8EDEB', thermalResistance: 0.25 },
+            'enamel': { name: 'Эмаль', maxTemp: 155, color: '#E9C46A', thermalResistance: 0.08 }
+        };
+
+        const installationFactors = {
+            'air': { factor: 1.0, name: 'В воздухе', description: 'Открытая прокладка' },
+            'conduit': { factor: 0.8, name: 'В трубе', description: 'Кабель-канал, труба' },
+            'wall': { factor: 0.7, name: 'В стене', description: 'Скрытая прокладка' },
+            'ground': { factor: 0.6, name: 'В земле', description: 'Подземная прокладка' }
+        };
+
+        const bundleFactors = {
+            1: 1.00, 2: 0.80, 3: 0.70, 4: 0.65, 5: 0.60, 6: 0.57, 7: 0.54, 8: 0.52,
+            9: 0.50, 10: 0.48, 11: 0.47, 12: 0.45, 13: 0.44, 14: 0.43, 15: 0.42,
+            16: 0.41, 17: 0.40, 18: 0.39, 19: 0.38, 20: 0.37
+        };
+
+        const awgStandardTable = [
+            { awg: 10, diameter: 2.588, area: 5.261 }, { awg: 11, diameter: 2.305, area: 4.172 },
+            { awg: 12, diameter: 2.053, area: 3.309 }, { awg: 13, diameter: 1.828, area: 2.624 },
+            { awg: 14, diameter: 1.628, area: 2.081 }, { awg: 15, diameter: 1.450, area: 1.650 },
+            { awg: 16, diameter: 1.291, area: 1.309 }, { awg: 17, diameter: 1.150, area: 1.038 },
+            { awg: 18, diameter: 1.024, area: 0.823 }, { awg: 19, diameter: 0.912, area: 0.653 },
+            { awg: 20, diameter: 0.812, area: 0.518 }, { awg: 21, diameter: 0.723, area: 0.410 },
+            { awg: 22, diameter: 0.644, area: 0.326 }, { awg: 23, diameter: 0.573, area: 0.258 },
+            { awg: 24, diameter: 0.511, area: 0.205 }, { awg: 25, diameter: 0.455, area: 0.162 },
+            { awg: 26, diameter: 0.405, area: 0.129 }
+        ];
+
+        let currentInstallationType = 'air';
+
+        function awgToDiameter(awg) { return 0.127 * Math.pow(92, (36 - awg) / 39); }
+
+        function diameterToAWG(diameter) { if (diameter <= 0) return 0; return Math.round((36 - 39 * Math.log(diameter / 0.127) / Math.log(92)) * 10) / 10; }
+
+        function findClosestAWG(diameter) {
+            let closest = awgStandardTable[0], minDiff = Math.abs(diameter - closest.diameter);
+            awgStandardTable.forEach(item => { const diff = Math.abs(diameter - item.diameter); if (diff < minDiff) { minDiff = diff; closest = item; } });
+            return closest;
+        }
+
+        function initializeInstallationOptions() {
+            const options = document.querySelectorAll('.installation-option');
+            options.forEach(option => { option.addEventListener('click', function() { options.forEach(opt => opt.classList.remove('selected')); this.classList.add('selected'); currentInstallationType = this.dataset.type; calculateAll(); }); });
+        }
+
+        function populateInstallationTable() {
+            const tableBody = document.getElementById('installationTable');
+            tableBody.innerHTML = '';
+            Object.keys(installationFactors).forEach(key => {
+                const factor = installationFactors[key];
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #dee2e6';
+                row.innerHTML = `<td style="padding: 8px;">${factor.name}</td><td style="padding: 8px;">${factor.factor}</td><td style="padding: 8px;">${factor.description}</td><td style="padding: 8px;">${(factor.factor * 100).toFixed(0)}%</td>`;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updateWireDiagram(conductorDiameter, insulationThickness, layers) {
+            const diagram = document.getElementById('wireDiagram');
+            diagram.innerHTML = '';
+            const maxSize = 80, scale = maxSize / (conductorDiameter + insulationThickness * layers * 2);
+            const conductorSize = conductorDiameter * scale;
+            
+            const conductor = document.createElement('div');
+            conductor.className = 'conductor';
+            conductor.style.width = conductorSize + 'px';
+            conductor.style.height = conductorSize + 'px';
+            conductor.style.background = materialProperties[document.getElementById('material').value].color;
+            diagram.appendChild(conductor);
+            
+            let currentSize = conductorSize;
+            for (let i = 0; i < layers; i++) {
+                const layer = document.createElement('div');
+                layer.className = 'insulation-layer';
+                layer.style.width = (currentSize + insulationThickness * scale * 2) + 'px';
+                layer.style.height = (currentSize + insulationThickness * scale * 2) + 'px';
+                layer.style.borderColor = insulationProperties[document.getElementById('insulationType').value].color;
+                diagram.appendChild(layer);
+                currentSize += insulationThickness * scale * 2;
+            }
+            
+            const label = document.createElement('div');
+            label.style.marginTop = '10px';
+            label.innerHTML = `Провод: Ø${conductorDiameter.toFixed(2)}мм + ${layers}×${insulationThickness}мм изоляции`;
+            diagram.appendChild(label);
+        }
+
+        function calculateResistance(diameter, material, frequency, temperature, length = 100) {
+            const materialProps = materialProperties[material];
+            const baseResistivity = materialProps.resistivity;
+            const tempCoefficient = materialProps.tempCoefficient;
+            const resistivity = baseResistivity * (1 + tempCoefficient * (temperature - 20));
+            const area = Math.PI * Math.pow(diameter / 2000, 2);
+            let resistance = resistivity * length / area;
+            
+            if (frequency > 0) {
+                const skinDepth = calculateSkinDepth(material, frequency, temperature);
+                if (skinDepth && skinDepth < diameter / 2) {
+                    const acFactor = 1 + Math.pow(diameter / (2 * skinDepth), 4) / 48;
+                    resistance *= acFactor;
+                }
+            }
+            
+            return resistance;
+        }
+
+        function calculateSkinDepth(material, frequency, temperature) {
+            if (frequency === 0) return null;
+            const resistivity = materialProperties[material].resistivity * (1 + materialProperties[material].tempCoefficient * (temperature - 20));
+            const mu0 = 4 * Math.PI * 1e-7;
+            const delta = Math.sqrt(resistivity / (Math.PI * frequency * mu0));
+            return delta * 1000;
+        }
+
+        function calculateThermalParameters(conductorDiameter, current, material, insulationType, layers, ambientTemp, installationType, bundleSize) {
+            const materialProps = materialProperties[material];
+            const insulationProps = insulationProperties[insulationType];
+            const installationFactor = installationFactors[installationType].factor;
+            const bundleFactor = bundleFactors[Math.min(bundleSize, 20)] || 0.37;
+            
+            const resistance = calculateResistance(conductorDiameter, material, 0, ambientTemp, 100);
+            const powerLoss = Math.pow(current, 2) * resistance;
+            const thermalResistance = insulationProps.thermalResistance * layers;
+            const deltaTemp = powerLoss * thermalResistance * installationFactor * bundleFactor;
+            const conductorTemp = ambientTemp + deltaTemp;
+            
+            const maxTemp = Math.min(materialProps.maxTemp, insulationProps.maxTemp);
+            const tempSafetyMargin = maxTemp - conductorTemp;
+            
+            return { conductorTemp, deltaTemp, maxTemp, tempSafetyMargin, powerLoss, isOverheat: conductorTemp > maxTemp };
+        }
+
+        function calculateAll() {
+            const diameterInput = document.getElementById('diameter');
+            const awgInput = document.getElementById('awg');
+            const areaInput = document.getElementById('area');
+            const currentInput = document.getElementById('current');
+            
+            const diameter = diameterInput.value ? parseFloat(diameterInput.value) : null;
+            const awg = awgInput.value ? parseFloat(awgInput.value) : null;
+            const area = areaInput.value ? parseFloat(areaInput.value) : null;
+            const current = currentInput.value ? parseFloat(currentInput.value) : null;
+            
+            const material = document.getElementById('material').value;
+            const insulationType = document.getElementById('insulationType').value;
+            const layers = parseInt(document.getElementById('insulationLayers').value);
+            const insulationThickness = parseFloat(document.getElementById('insulationThickness').value);
+            const frequency = parseFloat(document.getElementById('frequency').value) || 0;
+            const ambientTemp = parseFloat(document.getElementById('ambientTemp').value) || 25;
+            const bundleSize = parseInt(document.getElementById('bundleSize').value) || 1;
+
+            let conductorDiameter, conductorArea, calculatedAWG;
+            
+            if (diameter !== null) {
+                conductorDiameter = diameter;
+                conductorArea = Math.PI * Math.pow(conductorDiameter / 2, 2);
+                calculatedAWG = diameterToAWG(conductorDiameter);
+            } else if (awg !== null) {
+                conductorDiameter = awgToDiameter(awg);
+                conductorArea = Math.PI * Math.pow(conductorDiameter / 2, 2);
+                calculatedAWG = awg;
+            } else if (area !== null) {
+                conductorDiameter = 2 * Math.sqrt(area / Math.PI);
+                conductorArea = area;
+                calculatedAWG = diameterToAWG(conductorDiameter);
+            } else {
+                conductorDiameter = 1.0;
+                conductorArea = Math.PI * Math.pow(conductorDiameter / 2, 2);
+                calculatedAWG = diameterToAWG(conductorDiameter);
+            }
+
+            const insulatedDiameter = conductorDiameter + insulationThickness * layers * 2;
+            
+            const baseCurrent = materialProperties[material].baseCurrent;
+            const installationFactor = installationFactors[currentInstallationType].factor;
+            const bundleFactor = bundleFactors[Math.min(bundleSize, 20)] || 0.37;
+            const acFactor = frequency > 0 ? 0.8 : 1.0;
+            
+            const maxCurrent = conductorArea * baseCurrent * installationFactor * bundleFactor * acFactor;
+
+            const thermalCurrent = current || maxCurrent * 0.7;
+            const thermal = calculateThermalParameters(conductorDiameter, thermalCurrent, material, insulationType, layers, ambientTemp, currentInstallationType, bundleSize);
+
+            const resistance = calculateResistance(conductorDiameter, material, frequency, ambientTemp, 100);
+            const voltageDrop = current ? current * resistance : 0;
+            const powerLoss = current ? Math.pow(current, 2) * resistance : 0;
+
+            updateResults(conductorDiameter, insulatedDiameter, calculatedAWG, conductorArea, maxCurrent, voltageDrop, resistance, powerLoss);
+            updateWireDiagram(conductorDiameter, insulationThickness, layers);
+            updateSkinEffectInfo(conductorDiameter, material, frequency, ambientTemp);
+            updateThermalInfo(thermal);
+        }
+
+        function updateResults(diameter, insulatedDiameter, awg, area, maxCurrent, voltageDrop, resistance, powerLoss) {
+            document.getElementById('resultDiameter').textContent = diameter.toFixed(3);
+            document.getElementById('resultDiameterInsulated').textContent = insulatedDiameter.toFixed(3);
+            document.getElementById('resultAWG').textContent = awg.toFixed(1);
+            document.getElementById('resultArea').textContent = area.toFixed(3);
+            document.getElementById('resultCurrent').textContent = maxCurrent.toFixed(1);
+            document.getElementById('resultVoltageDrop').textContent = voltageDrop.toFixed(3);
+            document.getElementById('resultResistance').textContent = resistance.toFixed(4);
+            document.getElementById('resultPowerLoss').textContent = powerLoss.toFixed(1);
+        }
+
+        function updateSkinEffectInfo(diameter, material, frequency, temperature) {
+            const skinEffectDiv = document.getElementById('skinEffectInfo');
+            
+            if (frequency === 0) {
+                skinEffectDiv.innerHTML = '';
+                return;
+            }
+            
+            const skinDepth = calculateSkinDepth(material, frequency, temperature);
+            const significant = skinDepth && skinDepth < diameter / 2;
+            
+            skinEffectDiv.innerHTML = `<div class="skin-depth-result" style="background: ${significant ? '#f8d7da' : '#d4edda'}"><strong>Переменный ток ${frequency} Гц</strong><br>Глубина скин-слоя: ${skinDepth ? skinDepth.toFixed(4) : '∞'} мм<br>${significant ? '⚠️ Скин-эффект значителен!' : '✓ Скин-эффект незначителен'}</div>`;
+        }
+
+        function updateThermalInfo(thermal) {
+            const thermalDiv = document.getElementById('thermalInfo');
+            const tempColor = thermal.isOverheat ? '#f8d7da' : '#d4edda';
+            const warning = thermal.isOverheat ? '⚠️ ПЕРЕГРЕВ!' : '✓ Температура в норме';
+            
+            thermalDiv.innerHTML = `<div class="thermal-info" style="background: ${tempColor}"><strong>Тепловой расчёт</strong><br>Температура проводника: ${thermal.conductorTemp.toFixed(1)}°C<br>Максимальная допустимая: ${thermal.maxTemp}°C<br>Запас по температуре: ${thermal.tempSafetyMargin.toFixed(1)}°C<br>${warning}</div>`;
+        }
+
+        function updateWireDiagram(conductorDiameter, insulationThickness, layers) {
+            const diagram = document.getElementById('wireDiagram');
+            diagram.innerHTML = '';
+            
+            const maxSize = 80;
+            const scale = maxSize / (conductorDiameter + insulationThickness * layers * 2);
+            
+            const conductorSize = conductorDiameter * scale;
+            const insulation = insulationProperties[document.getElementById('insulationType').value];
+            
+            const conductor = document.createElement('div');
+            conductor.className = 'conductor';
+            conductor.style.width = conductorSize + 'px';
+            conductor.style.height = conductorSize + 'px';
+            conductor.style.background = materialProperties[document.getElementById('material').value].color;
+            diagram.appendChild(conductor);
+            
+            let currentSize = conductorSize;
+            for (let i = 0; i < layers; i++) {
+                const layer = document.createElement('div');
+                layer.className = 'insulation-layer';
+                layer.style.width = (currentSize + insulationThickness * scale * 2) + 'px';
+                layer.style.height = (currentSize + insulationThickness * scale * 2) + 'px';
+                layer.style.borderColor = insulation.color;
+                diagram.appendChild(layer);
+                currentSize += insulationThickness * scale * 2;
+            }
+            
+            const label = document.createElement('div');
+            label.style.marginTop = '10px';
+            label.innerHTML = `Провод: Ø${conductorDiameter.toFixed(2)}мм + ${layers}×${insulationThickness}мм изоляции`;
+            diagram.appendChild(label);
+        }
+
+        function clearAll() {
+            document.getElementById('diameter').value = '';
+            document.getElementById('awg').value = '';
+            document.getElementById('area').value = '';
+            document.getElementById('current').value = '';
+            document.getElementById('frequency').value = '0';
+            calculateAll();
+        }
+
+        // Инициализация при загрузке
+        window.addEventListener('DOMContentLoaded', function() {
+            initializeInstallationOptions();
+            populateInstallationTable();
+            
+            document.querySelectorAll('input, select').forEach(element => {
+                element.addEventListener('input', calculateAll);
+                element.addEventListener('change', calculateAll);
+            });
+            
+            calculateAll();
+        });
+    </script>
+</body>
+</html>
