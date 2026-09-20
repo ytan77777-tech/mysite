@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор реактивной мощности — ElectroCalc</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 80px 20px 40px;
+            color: #333;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(44, 62, 80, 0.95);
+            padding: 12px 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+
+        nav a:hover { background: rgba(255,255,255,0.2); }
+        nav a.active { background: #667eea; }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+
+        h1 { text-align: center; margin-bottom: 10px; color: #2c3e50; font-size: 34px; }
+
+        .subtitle { text-align: center; color: #6c757d; margin-bottom: 25px; font-size: 14px; }
+
+        .calculator-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+
+        @media (max-width: 768px) { .calculator-grid { grid-template-columns: 1fr; } }
+
+        .input-section, .result-section { background: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #e9ecef; }
+
+        .input-group { margin-bottom: 15px; }
+
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #495057; }
+
+        input, select { width: 100%; padding: 10px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; }
+
+        input:focus, select:focus { outline: none; border-color: #667eea; }
+
+        .mode-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+
+        .mode-option { background: white; padding: 15px; border-radius: 8px; border: 2px solid #e9ecef; cursor: pointer; transition: all 0.3s; text-align: center; }
+
+        .mode-option.selected { border-color: #667eea; background: #e7f3ff; }
+
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+
+        .result-item { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; }
+
+        .result-value { font-size: 20px; font-weight: bold; color: #2c3e50; margin-top: 5px; }
+
+        .result-unit { color: #6c757d; font-size: 12px; }
+
+        .power-triangle { padding: 20px; margin-top: 20px; background: white; border-radius: 10px; text-align: center; }
+
+        .power-triangle svg { max-width: 320px; width: 100%; }
+
+        .legend { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 10px; font-size: 12px; }
+
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+
+        .legend-color { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+        .info-section { background: #e7f3ff; padding: 15px; border-radius: 10px; margin-top: 20px; font-size: 13px; line-height: 1.5; }
+
+        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; color: #495057; border-bottom: 2px solid #667eea; padding-bottom: 5px; }
+
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 25px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; transition: transform 0.3s; margin-top: 10px; }
+
+        button:hover { transform: translateY(-2px); }
+
+        .conversion-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+
+        .conversion-table th { background: #667eea; color: white; padding: 8px; text-align: left; }
+
+        .conversion-table td { padding: 8px; border-bottom: 1px solid #e9ecef; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Резисторы</a>
+        <a href="wire-calculator.html">Провод</a>
+        <a href="reactive-power-calculator.html" class="active">Реактивная мощность</a>
+    </nav>
+
+    <div class="container">
+        <h1>⚡ Калькулятор реактивной мощности</h1>
+        <div class="subtitle">Расчёт Q, cos φ, ёмкости компенсации и треугольника мощностей</div>
+
+        <div class="calculator-grid">
+            <div class="input-section">
+                <div class="section-title">Режим расчёта</div>
+
+                <div class="mode-options">
+                    <div class="mode-option selected" data-mode="pq">
+                        <strong>По P и Q</strong><br>Активная и реактивная
+                    </div>
+                    <div class="mode-option" data-mode="ps">
+                        <strong>По P и S</strong><br>Активная и полная
+                    </div>
+                    <div class="mode-option" data-mode="pf">
+                        <strong>По P и cos φ</strong><br>Активная и коэф. мощности
+                    </div>
+                    <div class="mode-option" data-mode="comp">
+                        <strong>Компенсация</strong><br>Подбор конденсатора
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="activePower">Активная мощность P (Вт):</label>
+                    <input type="number" id="activePower" step="0.1" placeholder="Введите активную мощность">
+                </div>
+
+                <div class="input-group">
+                    <label for="reactivePower">Реактивная мощность Q (вар):</label>
+                    <input type="number" id="reactivePower" step="0.1" placeholder="Введите реактивную мощность">
+                </div>
+
+                <div class="input-group">
+                    <label for="apparentPower">Полная мощность S (ВА):</label>
+                    <input type="number" id="apparentPower" step="0.1" placeholder="Введите полную мощность">
+                </div>
+
+                <div class="input-group">
+                    <label for="powerFactor">Коэффициент мощности cos φ:</label>
+                    <input type="number" id="powerFactor" step="0.01" min="0" max="1" placeholder="0.00 – 1.00">
+                </div>
+
+                <div class="input-group">
+                    <label for="phaseType">Тип сети:</label>
+                    <select id="phaseType">
+                        <option value="single">Однофазная (220 В)</option>
+                        <option value="three">Трёхфазная (380 В)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="voltage">Напряжение (В):</label>
+                    <input type="number" id="voltage" value="220" step="1">
+                </div>
+
+                <div class="input-group">
+                    <label for="frequency">Частота сети (Гц):</label>
+                    <input type="number" id="frequency" value="50" step="1">
+                </div>
+
+                <label for="targetPowerFactor">Целевой cos φ (для компенсации):</label>
+                <input type="number" id="targetPowerFactor" step="0.01" min="0" max="1" value="0.95">
+
+                <button onclick="calculateAll()">Рассчитать</button>
+                <button onclick="clearAll()" style="background: #6c757d;">Очистить</button>
+            </div>
+
+            <div class="result-section">
+                <div class="section-title">Результаты расчёта</div>
+
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div>Активная мощность</div>
+                        <div class="result-value" id="resultP">-</div>
+                        <div class="result-unit">Вт</div>
+                    </div>
+
+                    <div class="result-item">
+                        <div>Реактивная мощность</div>
+                        <div class="result-value" id="resultQ">-</div>
+                        <div class="result-unit">вар</div>
+                    </div>
+
+                    <div class="result-item">
+                        <div>Полная мощность</div>
+                        <div class="result-value" id="resultS">-</div>
+                        <div class="result-unit">ВА</div>
+                    </div>
+
+                    <div class="result-item">
+                        <div>Коэффициент мощности</div>
+                        <div class="result-value" id="resultCosPhi">-</div>
+                        <div class="result-unit">cos φ</div>
+                    </div>
+
+                    <div class="result-item">
+                        <div>Ток нагрузки</div>
+                        <div class="result-value" id="resultCurrent">-</div>
+                        <div class="result-unit">А</div>
+                    </div>
+
+                    <div class="result-item">
+                        <div>Угол сдвига фаз</div>
+                        <div class="result-value" id="resultPhi">-</div>
+                        <div class="result-unit">°</div>
+                    </div>
+                </div>
+
+                <div id="compensationResult"></div>
+
+                <div class="power-triangle">
+                    <div class="section-title">Треугольник мощностей</div>
+                    <svg viewBox="0 0 320 260" id="powerTriangleSvg">
+                        <polygon id="trianglePoly" points="40,220 280,220 40,60" fill="rgba(102,126,234,0.15)" stroke="#667eea" stroke-width="2"/>
+                        <line id="axisS" x1="40" y1="220" x2="280" y2="220" stroke="#6c757d" stroke-width="1.5"/>
+                        <line id="axisP" x1="40" y1="220" x2="40" y2="60" stroke="#6c757d" stroke-width="1.5"/>
+                        <text x="285" y="215" fill="#6c757d" font-size="12">S (полная)</text>
+                        <text x="35" y="50" fill="#6c757d" font-size="12">Q (реактивная)</text>
+                        <text x="140" y="240" fill="#6c757d" font-size="12">P (активная)</text>
+                        <text id="phiLabel" x="100" y="195" fill="#e74c3c" font-size="13" font-weight="bold">φ</text>
+                    </svg>
+                    <div class="legend">
+                        <span class="legend-item"><span class="legend-color" style="background: #667eea;"></span> Полная S</span>
+                        <span class="legend-item"><span class="legend-color" style="background: #2ecc71;"></span> Прямоугольный треугольник</span>
+                        <span class="legend-item"><span class="legend-color" style="background: #e74c3c;"></span> Угол φ</span>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="section-title">📚 Формулы</div>
+                    <div id="formulaInfo">Введите параметры для расчёта</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="section-title">📋 Таблица типовых значений cos φ</div>
+            <div style="overflow-x: auto;">
+                <table class="conversion-table">
+                    <thead>
+                        <tr>
+                            <th>Потребитель</th>
+                            <th>Типовой cos φ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Лампы накаливания, ТЭНы</td><td>1.0</td></tr>
+                        <tr><td>Люминесцентные лампы</td><td>0.5 – 0.9</td></tr>
+                        <tr><td>Светодиодные лампы (с драйвером)</td><td>0.7 – 0.95</td></tr>
+                        <tr><td>Асинхронные двигатели (нагрузка ~75%)</td><td>0.8 – 0.85</td></tr>
+                        <tr><td>Асинхронные двигатели (холостой ход)</td><td>0.2 – 0.3</td></tr>
+                        <tr><td>Сварочные трансформаторы</td><td>0.4 – 0.6</td></tr>
+                        <tr><td>Компьютеры, офисная техника</td><td>0.6 – 0.8</td></tr>
+                        <tr><td>Индукционные печи</td><td>0.6 – 0.8</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'pq';
+
+        function initModeSelection() {
+            const options = document.querySelectorAll('.mode-option');
+            options.forEach(option => {
+                option.addEventListener('click', function() {
+                    options.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    currentMode = this.dataset.mode;
+                    calculateAll();
+                });
+            });
+        }
+
+        function formatValue(value, unit, precision) {
+            if (value === null || isNaN(value)) return '-';
+            return value.toFixed(precision ?? 2) + ' ' + unit;
+        }
+
+        function formatPower(value) {
+            if (value === null || isNaN(value)) return '-';
+            const abs = Math.abs(value);
+            if (abs >= 1e6) return (value / 1e6).toFixed(2) + ' М';
+            if (abs >= 1e3) return (value / 1e3).toFixed(2) + ' к';
+            return value.toFixed(2) + ' ';
+        }
+
+        function calculateAll() {
+            const P = parseFloat(document.getElementById('activePower').value);
+            const Q_in = parseFloat(document.getElementById('reactivePower').value);
+            const S_in = parseFloat(document.getElementById('apparentPower').value);
+            const cos_in = parseFloat(document.getElementById('powerFactor').value);
+            const phaseType = document.getElementById('phaseType').value;
+            const voltage = parseFloat(document.getElementById('voltage').value) || 220;
+            const frequency = parseFloat(document.getElementById('frequency').value) || 50;
+            const targetCos = parseFloat(document.getElementById('targetPowerFactor').value) || 0.95;
+
+            let Pv = null, Qv = null, Sv = null, cosv = null;
+
+            if (currentMode === 'pq' && !isNaN(P) && !isNaN(Q_in)) {
+                Pv = P; Qv = Q_in;
+                Sv = Math.sqrt(P * P + Q_in * Q_in);
+                cosv = Sv > 0 ? P / Sv : 1;
+            } else if (currentMode === 'ps' && !isNaN(P) && !isNaN(S_in)) {
+                Pv = P; Sv = S_in;
+                Qv = S_in >= P ? Math.sqrt(S_in * S_in - P * P) : 0;
+                cosv = S_in > 0 ? P / S_in : 1;
+            } else if (currentMode === 'pf' && !isNaN(P) && !isNaN(cos_in)) {
+                Pv = P; cosv = Math.min(1, Math.max(0, cos_in));
+                Sv = cosv > 0 ? P / cosv : 0;
+                Qv = Sv > 0 ? Math.sqrt(Math.max(0, Sv * Sv - P * P)) : 0;
+            } else if (currentMode === 'comp' && !isNaN(P) && !isNaN(Q_in)) {
+                Pv = P; Qv = Q_in;
+                Sv = Math.sqrt(P * P + Q_in * Q_in);
+                cosv = Sv > 0 ? P / Sv : 1;
+            }
+
+            if (Pv === null) {
+                document.getElementById('resultP').textContent = '-';
+                document.getElementById('resultQ').textContent = '-';
+                document.getElementById('resultS').textContent = '-';
+                document.getElementById('resultCosPhi').textContent = '-';
+                document.getElementById('resultCurrent').textContent = '-';
+                document.getElementById('resultPhi').textContent = '-';
+                document.getElementById('compensationResult').innerHTML = '';
+                document.getElementById('formulaInfo').textContent = 'Введите параметры для расчёта';
+                drawTriangle(null);
+                return;
+            }
+
+            const phi = Math.acos(Math.min(1, Math.max(-1, cosv))) * 180 / Math.PI;
+
+            let current = 0;
+            if (phaseType === 'single') {
+                current = voltage > 0 ? Sv / voltage : 0;
+            } else {
+                current = voltage > 0 ? Sv / (Math.sqrt(3) * voltage) : 0;
+            }
+
+            document.getElementById('resultP').textContent = formatPower(Pv) + 'Вт';
+            document.getElementById('resultQ').textContent = formatPower(Qv) + 'вар';
+            document.getElementById('resultS').textContent = formatPower(Sv) + 'ВА';
+            document.getElementById('resultCosPhi').textContent = cosv.toFixed(3);
+            document.getElementById('resultCurrent').textContent = formatValue(current, 'А');
+            document.getElementById('resultPhi').textContent = phi.toFixed(1) + '°' + (Qv < 0 ? ' (ёмкостная)' : ' (индуктивная)');
+
+            if (currentMode === 'comp') {
+                const cosCurrent = cosv;
+                const tanCurrent = Math.sqrt(Math.max(0, 1 / (cosCurrent * cosCurrent) - 1));
+                const tanTarget = Math.sqrt(Math.max(0, 1 / (targetCos * targetCos) - 1));
+                const Qc = Pv * (tanCurrent - tanTarget);
+
+                const U = phaseType === 'single' ? voltage : voltage / Math.sqrt(3);
+                const C = Qc > 0 ? Qc / (2 * Math.PI * frequency * U * U) : 0;
+
+                document.getElementById('compensationResult').innerHTML =
+                    '<div class="info-section" style="background: #d4edda; border-left: 4px solid #28a745;">' +
+                    '<strong>Компенсация реактивной мощности</strong><br>' +
+                    'Текущий cos φ: ' + cosCurrent.toFixed(3) + '<br>' +
+                    'Целевой cos φ: ' + targetCos.toFixed(3) + '<br>' +
+                    'Требуемая мощность конденсаторной установки: <b>' + formatPower(Qc) + 'вар</b><br>' +
+                    (C > 0 ? 'Ёмкость батареи конденсаторов: <b>' + C.toFixed(6) + ' Ф</b> (' + (C * 1e6).toFixed(0) + ' мкФ)' : 'Компенсация не требуется') +
+                    '</div>';
+            } else {
+                document.getElementById('compensationResult').innerHTML = '';
+            }
+
+            document.getElementById('formulaInfo').innerHTML =
+                'S = √(P² + Q²) &nbsp;|&nbsp; cos φ = P / S &nbsp;|&nbsp; Q = √(S² − P²)<br>' +
+                'Однофазная: I = S / U &nbsp;|&nbsp; Трёхфазная: I = S / (√3 · U)<br>' +
+                'Компенсация: Q<sub>к</sub> = P · (tg φ₁ − tg φ₂), &nbsp;C = Q<sub>к</sub> / (2πfU²)';
+
+            drawTriangle({ P: Pv, Q: Qv, S: Sv });
+        }
+
+        function drawTriangle(data) {
+            const svg = document.getElementById('powerTriangleSvg');
+            const poly = document.getElementById('trianglePoly');
+            const phiLabel = document.getElementById('phiLabel');
+
+            if (!data) {
+                poly.setAttribute('points', '40,220 280,220 40,60');
+                phiLabel.textContent = '';
+                return;
+            }
+
+            const x0 = 40, y0 = 220, maxLen = 240;
+            const S = data.S || 1;
+            const scale = maxLen / S;
+
+            const xP = x0 + Math.max(0, data.P) * scale;
+            const yS = y0 - Math.max(0, data.S) * scale;
+
+            poly.setAttribute('points', `${x0},${y0} ${x0 + S * scale},${y0} ${x0},${y0 - S * scale}`);
+
+            phiLabel.setAttribute('x', (x0 + 20).toString());
+            phiLabel.setAttribute('y', (y0 - 10).toString());
+        }
+
+        function clearAll() {
+            document.getElementById('activePower').value = '';
+            document.getElementById('reactivePower').value = '';
+            document.getElementById('apparentPower').value = '';
+            document.getElementById('powerFactor').value = '';
+            calculateAll();
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            initModeSelection();
+            document.querySelectorAll('input, select').forEach(element => {
+                element.addEventListener('input', calculateAll);
+                element.addEventListener('change', calculateAll);
+            });
+            calculateAll();
+        });
+    </script>
+</body>
+</html>

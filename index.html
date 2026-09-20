@@ -26,7 +26,34 @@
         border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         padding: 30px;
+        margin-top: 60px;
     }
+
+    nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(44, 62, 80, 0.95);
+        padding: 12px 20px;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        z-index: 100;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    nav a {
+        color: white;
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: background 0.3s;
+        font-size: 14px;
+    }
+
+    nav a:hover { background: rgba(255,255,255,0.2); }
+    nav a.active { background: #3498db; }
     
     h1 {
         text-align: center;
@@ -153,6 +180,11 @@
 </style>
 </head>
 <body>
+    <nav>
+        <a href="index.html" class="active">Резисторы</a>
+        <a href="wire-calculator.html">Провод</a>
+        <a href="reactive-power-calculator.html">Реактивная мощность</a>
+    </nav>
     <div class="container">
         <h1>🧮 Калькулятор цветовой маркировки резисторов</h1>
         
