@@ -105,6 +105,10 @@
         .conversion-table th { background: #667eea; color: white; padding: 8px; text-align: left; }
 
         .conversion-table td { padding: 8px; border-bottom: 1px solid #e9ecef; }
+
+        .voltage-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
+
+        .small-note { font-size: 11px; color: #6c757d; margin-top: -8px; margin-bottom: 15px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -160,20 +164,80 @@
                 <div class="input-group">
                     <label for="phaseType">Тип сети:</label>
                     <select id="phaseType">
-                        <option value="single">Однофазная (220 В)</option>
-                        <option value="three">Трёхфазная (380 В)</option>
+                        <option value="single" selected>Однофазная (230 В)</option>
+                        <option value="three">Трёхфазная (400 В)</option>
                     </select>
                 </div>
 
-                <div class="input-group">
-                    <label for="voltage">Напряжение (В):</label>
-                    <input type="number" id="voltage" value="220" step="1">
+                <div class="voltage-row">
+                    <div class="input-group">
+                        <label for="voltage">Напряжение (В):</label>
+                        <input type="number" id="voltage" value="230" step="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="voltagePreset">Стандартное:</label>
+                        <select id="voltagePreset">
+                            <option value="230" selected>230 В (~)</option>
+                            <option value="220">220 В</option>
+                            <option value="400">400 В (3ф)</option>
+                            <option value="380">380 В (3ф)</option>
+                        </select>
+                    </div>
                 </div>
+
+                <div class="small-note">Стандартное номинальное напряжение РФ — 230/400 В. Пресет подставляет значение, но можно ввести любое.</div>
 
                 <div class="input-group">
                     <label for="frequency">Частота сети (Гц):</label>
                     <input type="number" id="frequency" value="50" step="1">
                 </div>
+
+                <div class="section-title">Потери в линии</div>
+
+                <div class="input-group">
+                    <label for="lineLength">Длина линии (м):</label>
+                    <input type="number" id="lineLength" value="50" step="1" min="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="wireMaterial">Материал провода:</label>
+                    <select id="wireMaterial">
+                        <option value="copper" selected>Медь</option>
+                        <option value="aluminum">Алюминий</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="wireSection">Сечение провода (мм²):</label>
+                    <select id="wireSection">
+                        <option value="1.5">1.5 мм²</option>
+                        <option value="2.5" selected>2.5 мм²</option>
+                        <option value="4">4 мм²</option>
+                        <option value="6">6 мм²</option>
+                        <option value="10">10 мм²</option>
+                        <option value="16">16 мм²</option>
+                        <option value="25">25 мм²</option>
+                        <option value="35">35 мм²</option>
+                        <option value="50">50 мм²</option>
+                    </select>
+                </div>
+
+                <div class="section-title">Автоматический выключатель</div>
+
+                <div class="input-group">
+                    <label for="breakerCurrent">Номинальный ток автомата (А):</label>
+                    <input type="number" id="breakerCurrent" value="40" step="1" min="1">
+                </div>
+
+                <div class="input-group">
+                    <label for="breakerType">Тип расцепителя:</label>
+                    <select id="breakerType">
+                        <option value="thermal" selected>Тепловой (термомагнитный)</option>
+                        <option value="electronic">Электронный (ABB)</option>
+                    </select>
+                </div>
+
+                <div class="small-note">Для защиты линий по ПУЭ применяют автоматы с тепловым (термомагнитным) расцепителем — защита от перегрузки.</div>
 
                 <label for="targetPowerFactor">Целевой cos φ (для компенсации):</label>
                 <input type="number" id="targetPowerFactor" step="0.01" min="0" max="1" value="0.95">
@@ -223,6 +287,8 @@
                     </div>
                 </div>
 
+                <div id="lineLossResult"></div>
+                <div id="breakerResult"></div>
                 <div id="compensationResult"></div>
 
                 <div class="power-triangle">
@@ -303,15 +369,63 @@
             return value.toFixed(2) + ' ';
         }
 
-        function calculateAll() {
+        const wireResistivities = {
+            copper: 0.0175,
+            aluminum: 0.028
+        };
+
+        const wireMaterialNames = {
+            copper: 'Медь',
+            aluminum: 'Алюминий'
+        };
+
+        function calculateLineLosses(current, phaseType, voltage, length, material, section) {
+            const rho = wireResistivities[material] || 0.0175;
+            const Rphase = rho * length / section;
+            let Rline, dU, dUPercent, Ploss;
+
+            if (phaseType === 'single') {
+                Rline = 2 * Rphase;
+                dU = current * Rline;
+                Ploss = current * current * Rline;
+                dUPercent = voltage > 0 ? dU / voltage * 100 : 0;
+            } else {
+                Rline = Rphase;
+                dU = Math.sqrt(3) * current * Rline;
+                Ploss = 3 * current * current * Rline;
+                dUPercent = voltage > 0 ? dU / voltage * 100 : 0;
+            }
+
+            return { Rline, dU, dUPercent, Ploss, rho };
+        }
+
+        function calculateBreakerLosses(current, breakerCurrent, breakerType, phaseType) {
+            const poles = phaseType === 'single' ? 2 : 3;
+            let wattsPerPoleAtIn;
+            if (breakerType === 'electronic') {
+                wattsPerPoleAtIn = 2.5;
+            } else {
+                wattsPerPoleAtIn = 4.0;
+            }
+            const ratio = breakerCurrent > 0 ? current / breakerCurrent : 0;
+            const Ploss = wattsPerPoleAtIn * poles * ratio * ratio;
+            return { Ploss, ratio, poles, wattsPerPoleAtIn };
+        }
+
+function calculateAll() {
             const P = parseFloat(document.getElementById('activePower').value);
             const Q_in = parseFloat(document.getElementById('reactivePower').value);
             const S_in = parseFloat(document.getElementById('apparentPower').value);
             const cos_in = parseFloat(document.getElementById('powerFactor').value);
             const phaseType = document.getElementById('phaseType').value;
-            const voltage = parseFloat(document.getElementById('voltage').value) || 220;
+            const voltage = parseFloat(document.getElementById('voltage').value) || 230;
             const frequency = parseFloat(document.getElementById('frequency').value) || 50;
             const targetCos = parseFloat(document.getElementById('targetPowerFactor').value) || 0.95;
+            const lineLength = parseFloat(document.getElementById('lineLength').value) || 0;
+            const wireMaterial = document.getElementById('wireMaterial').value;
+            const wireSection = parseFloat(document.getElementById('wireSection').value) || 2.5;
+            const breakerCurrent = parseFloat(document.getElementById('breakerCurrent').value) || 40;
+            const breakerType = document.getElementById('breakerType').value;
 
             let Pv = null, Qv = null, Sv = null, cosv = null;
 
@@ -341,6 +455,8 @@
                 document.getElementById('resultCurrent').textContent = '-';
                 document.getElementById('resultPhi').textContent = '-';
                 document.getElementById('compensationResult').innerHTML = '';
+                document.getElementById('lineLossResult').innerHTML = '';
+                document.getElementById('breakerResult').innerHTML = '';
                 document.getElementById('formulaInfo').textContent = 'Введите параметры для расчёта';
                 drawTriangle(null);
                 return;
@@ -383,12 +499,40 @@
                 document.getElementById('compensationResult').innerHTML = '';
             }
 
+            const lineLoss = calculateLineLosses(current, phaseType, voltage, lineLength, wireMaterial, wireSection);
+            const breakerLoss = calculateBreakerLosses(current, breakerCurrent, breakerType, phaseType);
+
+            const lossColor = lineLoss.dUPercent > 5 ? '#f8d7da' : '#d4edda';
+            const breakerColor = current > breakerCurrent ? '#f8d7da' : '#d4edda';
+
+            if (lineLength > 0) {
+                document.getElementById('lineLossResult').innerHTML =
+                    '<div class="info-section" style="background: ' + lossColor + '; border-left: 4px solid ' + (lineLoss.dUPercent > 5 ? '#dc3545' : '#28a745') + ';">' +
+                    '<strong>Потери в линии (' + lineLength + ' м, ' + wireMaterialNames[wireMaterial] + ' ' + wireSection + ' мм²)</strong><br>' +
+                    'Сопротивление линии: <b>' + lineLoss.Rline.toFixed(4) + ' Ом</b><br>' +
+                    'Падение напряжения: <b>' + lineLoss.dU.toFixed(2) + ' В</b> (' + lineLoss.dUPercent.toFixed(2) + '%)' +
+                    (lineLoss.dUPercent > 5 ? ' ⚠️ Превышает рекомендуемые 5%' : ' ✓ В пределах нормы') +
+                    '<br>Потери мощности: <b>' + lineLoss.Ploss.toFixed(1) + ' Вт</b>' +
+                    '</div>';
+            } else {
+                document.getElementById('lineLossResult').innerHTML = '';
+            }
+
+            document.getElementById('breakerResult').innerHTML =
+                '<div class="info-section" style="background: ' + breakerColor + '; border-left: 4px solid ' + (current > breakerCurrent ? '#dc3545' : '#28a745') + ';">' +
+                '<strong>Автоматический выключатель ' + (breakerType === 'electronic' ? 'ABB (электронный расцепитель)' : 'с тепловым (термомагнитным) расцепителем') + ' ' + breakerCurrent + ' А</strong><br>' +
+                'Загрузка по току: <b>' + (breakerCurrent > 0 ? (current / breakerCurrent * 100).toFixed(0) : 0) + '%</b> от номинала' +
+                (current > breakerCurrent ? ' ⚠️ Ток превышает номинал — автомат отключится!' : '') +
+                '<br>Мощность потерь на автомате: <b>' + breakerLoss.Ploss.toFixed(2) + ' Вт</b>' +
+                '</div>';
+
             document.getElementById('formulaInfo').innerHTML =
                 'S = √(P² + Q²) &nbsp;|&nbsp; cos φ = P / S &nbsp;|&nbsp; Q = √(S² − P²)<br>' +
                 'Однофазная: I = S / U &nbsp;|&nbsp; Трёхфазная: I = S / (√3 · U)<br>' +
+                'Потери в линии: ΔU = I · R<sub>линии</sub>, &nbsp;P<sub>пот</sub> = I² · R<sub>линии</sub><br>' +
                 'Компенсация: Q<sub>к</sub> = P · (tg φ₁ − tg φ₂), &nbsp;C = Q<sub>к</sub> / (2πfU²)';
 
-            drawTriangle({ P: Pv, Q: Qv, S: Sv });
+drawTriangle({ P: Pv, Q: Qv, S: Sv });
         }
 
         function drawTriangle(data) {
@@ -425,6 +569,18 @@
 
         window.addEventListener('DOMContentLoaded', function() {
             initModeSelection();
+
+            const voltagePreset = document.getElementById('voltagePreset');
+            const voltageInput = document.getElementById('voltage');
+            voltagePreset.addEventListener('change', function() {
+                voltageInput.value = this.value;
+                calculateAll();
+            });
+            voltageInput.addEventListener('input', function() {
+                voltagePreset.value = '';
+                calculateAll();
+            });
+
             document.querySelectorAll('input, select').forEach(element => {
                 element.addEventListener('input', calculateAll);
                 element.addEventListener('change', calculateAll);
