@@ -139,6 +139,12 @@
                 </div>
 
                 <div class="input-group">
+                    <label for="powerFactor">Коэффициент мощности cos φ <span class="unit">(опционально)</span>:</label>
+                    <input type="number" id="powerFactor" step="0.01" min="0" max="1" value="0.87" placeholder="0.00 – 1.00">
+                    <div class="small-note">Если не заполнен — рассчитывается автоматически из P, U, I</div>
+                </div>
+
+                <div class="input-group">
                     <label for="phaseType">Тип сети:</label>
                     <select id="phaseType">
                         <option value="single" selected>Однофазная (230 В)</option>
@@ -437,6 +443,7 @@ function calculateAll() {
             const currentInput = parseFloat(document.getElementById('currentInput').value);
             const Q_in = parseFloat(document.getElementById('reactivePower').value);
             const S_in = parseFloat(document.getElementById('apparentPower').value);
+            const cos_in = parseFloat(document.getElementById('powerFactor').value);
             const phaseType = document.getElementById('phaseType').value;
             const voltage = parseFloat(document.getElementById('voltage').value) || 230;
             const frequency = parseFloat(document.getElementById('frequency').value) || 50;
@@ -456,12 +463,14 @@ function calculateAll() {
             const hasQ = !isNaN(Q_in);
             const hasS = !isNaN(S_in);
             const hasI = !isNaN(currentInput) && currentInput > 0;
+            const hasCos = !isNaN(cos_in) && cos_in > 0 && cos_in <= 1;
 
             if (hasP && hasI) {
-                // S из измеренных U и I, cos φ = P / S
+                // S из измеренных U и I
                 Sv = phaseType === 'single' ? currentInput * voltage : Math.sqrt(3) * currentInput * voltage;
                 Pv = P;
-                cosv = Sv > 0 ? Math.min(1, P / Sv) : 1;
+                // cos φ из счётчика, если введён; иначе считаем из P и S
+                cosv = hasCos ? Math.min(1, Math.max(0, cos_in)) : (Sv > 0 ? Math.min(1, P / Sv) : 1);
                 Qv = Sv > 0 ? Math.sqrt(Math.max(0, Sv * Sv - P * P)) : 0;
             } else if (hasP && hasQ) {
                 Pv = P; Qv = Q_in;
