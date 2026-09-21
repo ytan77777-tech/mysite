@@ -129,19 +129,8 @@
                 </div>
 
                 <div class="input-group">
-                    <label for="reactivePower">Реактивная мощность Q (вар):</label>
-                    <input type="number" id="reactivePower" step="0.1" placeholder="Введите реактивную мощность">
-                </div>
-
-                <div class="input-group">
-                    <label for="apparentPower">Полная мощность S (ВА):</label>
-                    <input type="number" id="apparentPower" step="0.1" placeholder="Введите полную мощность">
-                </div>
-
-                <div class="input-group">
-                    <label for="powerFactor">Коэффициент мощности cos φ <span class="unit">(опционально)</span>:</label>
+                    <label for="powerFactor">Коэффициент мощности cos φ:</label>
                     <input type="number" id="powerFactor" step="0.01" min="0" max="1" value="0.87" placeholder="0.00 – 1.00">
-                    <div class="small-note">Если не заполнен — рассчитывается автоматически из P, U, I</div>
                 </div>
 
                 <div class="input-group">
@@ -441,8 +430,6 @@
 function calculateAll() {
             const P = parseFloat(document.getElementById('activePower').value);
             const currentInput = parseFloat(document.getElementById('currentInput').value);
-            const Q_in = parseFloat(document.getElementById('reactivePower').value);
-            const S_in = parseFloat(document.getElementById('apparentPower').value);
             const cos_in = parseFloat(document.getElementById('powerFactor').value);
             const phaseType = document.getElementById('phaseType').value;
             const voltage = parseFloat(document.getElementById('voltage').value) || 230;
@@ -460,26 +447,17 @@ function calculateAll() {
             let Pv = null, Qv = null, Sv = null, cosv = null;
 
             const hasP = !isNaN(P);
-            const hasQ = !isNaN(Q_in);
-            const hasS = !isNaN(S_in);
             const hasI = !isNaN(currentInput) && currentInput > 0;
             const hasCos = !isNaN(cos_in) && cos_in > 0 && cos_in <= 1;
 
             if (hasP && hasI) {
-                // S из измеренных U и I
+                // Полная мощность из измеренных U и I
                 Sv = phaseType === 'single' ? currentInput * voltage : Math.sqrt(3) * currentInput * voltage;
                 Pv = P;
-                // cos φ из счётчика, если введён; иначе считаем из P и S
+                // cos φ со счётчика (если введён), иначе считаем из P и S
                 cosv = hasCos ? Math.min(1, Math.max(0, cos_in)) : (Sv > 0 ? Math.min(1, P / Sv) : 1);
+                // Реактивная мощность из S и P
                 Qv = Sv > 0 ? Math.sqrt(Math.max(0, Sv * Sv - P * P)) : 0;
-            } else if (hasP && hasQ) {
-                Pv = P; Qv = Q_in;
-                Sv = Math.sqrt(P * P + Q_in * Q_in);
-                cosv = Sv > 0 ? P / Sv : 1;
-            } else if (hasP && hasS) {
-                Pv = P; Sv = S_in;
-                Qv = S_in >= P ? Math.sqrt(S_in * S_in - P * P) : 0;
-                cosv = S_in > 0 ? P / S_in : 1;
             }
 
             if (Pv === null) {
@@ -632,8 +610,8 @@ drawTriangle({ P: Pv, Q: Qv, S: Sv });
 
         function clearAll() {
             document.getElementById('activePower').value = '';
-            document.getElementById('reactivePower').value = '';
-            document.getElementById('apparentPower').value = '';
+            document.getElementById('currentInput').value = '';
+            document.getElementById('powerFactor').value = '';
             calculateAll();
         }
 
