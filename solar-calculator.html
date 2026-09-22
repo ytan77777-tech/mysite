@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Солнце и тень — Псков</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 80px 20px 40px;
+            color: #333;
+        }
+
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            background: rgba(44,62,80,0.95);
+            padding: 12px 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+        nav a:hover { background: rgba(255,255,255,0.2); }
+        nav a.active { background: #667eea; }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+
+        h1 { text-align: center; margin-bottom: 5px; color: #2c3e50; font-size: 30px; }
+        .subtitle { text-align: center; color: #6c757d; margin-bottom: 25px; font-size: 14px; }
+        .coord-note { text-align: center; color: #495057; margin-bottom: 20px; font-size: 13px; background: #e7f3ff; padding: 8px; border-radius: 8px; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+        .card { background: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #e9ecef; }
+
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 4px; font-weight: 600; color: #495057; font-size: 13px; }
+        input, select { width: 100%; padding: 9px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; }
+        input:focus, select:focus { outline: none; border-color: #667eea; }
+
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .result-item { background: white; padding: 12px; border-radius: 8px; border-left: 4px solid #667eea; }
+        .result-value { font-size: 18px; font-weight: bold; color: #2c3e50; margin-top: 3px; }
+        .result-unit { color: #6c757d; font-size: 12px; }
+
+        .sun-chart { position: relative; width: 100%; max-width: 400px; margin: 15px auto; }
+        .sun-chart canvas { width: 100%; height: auto; border-radius: 10px; }
+
+        .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #495057; border-bottom: 2px solid #667eea; padding-bottom: 4px; }
+
+        .shadow-info { background: #e7f3ff; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 14px; line-height: 1.6; }
+
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 11px 25px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.3s; margin-top: 8px; }
+        button:hover { transform: translateY(-2px); }
+
+        .shadow-vis { margin-top: 15px; text-align: center; }
+        .shadow-vis canvas { width: 100%; max-width: 360px; height: auto; border-radius: 10px; background: #f8f9fa; }
+
+        .sky-label { font-size: 11px; fill: #6c757d; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Резисторы</a>
+        <a href="wire-calculator.html">Провод</a>
+        <a href="reactive-power-calculator.html">Реактивная мощность</a>
+        <a href="solar-calculator.html" class="active">Солнце и тень</a>
+    </nav>
+
+    <div class="container">
+        <h1>☀️ Солнце и тень в Пскове</h1>
+        <div class="subtitle">Расчёт положения солнца, азимута, высоты и длины тени</div>
+        <div class="coord-note">📍 Псков: широта 57°49′ с.ш., долгота 28°20′ в.д. (UTC+3)</div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="section-title">📅 Дата и время</div>
+
+                <div class="input-group">
+                    <label for="datePicker">Дата:</label>
+                    <input type="date" id="datePicker">
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="hourInput">Час (0–23):</label>
+                        <input type="number" id="hourInput" min="0" max="23" value="14" step="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="minuteInput">Минуты (0–59):</label>
+                        <input type="number" id="minuteInput" min="0" max="59" value="0" step="1">
+                    </div>
+                </div>
+
+                <div class="section-title" style="margin-top:15px;">🏗️ Параметры объекта</div>
+
+                <div class="input-group">
+                    <label for="objHeight">Высота объекта (м):</label>
+                    <input type="number" id="objHeight" value="5" step="0.5" min="0.1">
+                </div>
+
+                <div class="input-group">
+                    <label for="objWidth">Ширина объекта (м):</label>
+                    <input type="number" id="objWidth" value="2" step="0.5" min="0.1">
+                </div>
+
+                <div class="input-group">
+                    <label for="groundOrientation">Ориентация объекта (азимут фасада, °):</label>
+                    <select id="groundOrientation">
+                        <option value="0">0° — север</option>
+                        <option value="45">45° — северо-восток</option>
+                        <option value="90" selected>90° — восток</option>
+                        <option value="135">135° — юго-восток</option>
+                        <option value="180">180° — юг</option>
+                        <option value="225">225° — юго-запад</option>
+                        <option value="270">270° — запад</option>
+                        <option value="315">315° — северо-запад</option>
+                    </select>
+                </div>
+
+                <button onclick="calculate()">🔄 Рассчитать</button>
+            </div>
+
+            <div class="card">
+                <div class="section-title">📊 Положение солнца</div>
+
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div>Высота над горизонтом</div>
+                        <div class="result-value" id="resultElevation">-<span class="result-unit">°</span></div>
+                    </div>
+                    <div class="result-item">
+                        <div>Азимут</div>
+                        <div class="result-value" id="resultAzimuth">-<span class="result-unit">°</span></div>
+                    </div>
+                    <div class="result-item">
+                        <div>Склонение солнца</div>
+                        <div class="result-value" id="resultDeclination">-<span class="result-unit">°</span></div>
+                    </div>
+                    <div class="result-item">
+                        <div>Солнце в зените?</div>
+                        <div class="result-value" style="font-size:16px;" id="resultZenith">-</div>
+                    </div>
+                </div>
+
+                <div class="sun-chart">
+                    <canvas id="sunPathCanvas" width="400" height="400"></canvas>
+                </div>
+
+                <div class="shadow-info" id="shadowInfo">
+                    Заполните параметры и нажмите «Рассчитать»
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:25px;">
+            <div class="section-title">📐 Визуализация тени на земле</div>
+            <div class="shadow-vis">
+                <canvas id="shadowCanvas" width="360" height="360"></canvas>
+            </div>
+            <div class="shadow-info" id="shadowDetails" style="margin-top:10px;">
+                Введите данные и нажмите «Рассчитать»
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Координаты Пскова
+        const LAT = 57.82;
+        const LON = 28.33;
+        const TZ = 3;
+
+        function deg(rad) { return rad * 180 / Math.PI; }
+        function rad(deg) { return deg * Math.PI / 180; }
+
+        function calcSun(date, hours, minutes) {
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+
+            // Юлианский день
+            let a = Math.floor((14 - month) / 12);
+            let y = year + 4800 - a;
+            let m = month + 12 * a - 3;
+            let JDN = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+
+            const d = JDN - 2451545 + (hours - TZ + minutes / 60) / 24;
+
+            // Средняя аномалия
+            const M = rad(357.5291 + 0.98560028 * d);
+            // Уравнение центра
+            const C = (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+            const eclipticLon = rad(280.4665 + 0.98560028 * d + C);
+            // Склонение
+            const eps = rad(23.4393 - 0.00000036 * d);
+            const dec = Math.asin(Math.sin(eps) * Math.sin(eclipticLon));
+
+            // Часовой угол
+            const hourAngle = rad(15 * (hours + minutes / 60 - TZ) - LON + 180);
+
+            // Высота
+            const sinAlt = Math.sin(rad(LAT)) * Math.sin(dec) + Math.cos(rad(LAT)) * Math.cos(dec) * Math.cos(hourAngle);
+            const elevation = Math.asin(sinAlt);
+
+            // Азимут
+            const cosAz = (Math.sin(dec) - Math.sin(rad(LAT)) * sinAlt) / (Math.cos(rad(LAT)) * Math.cos(elevation));
+            let az = Math.acos(Math.max(-1, Math.min(1, cosAz)));
+            if (Math.sin(hourAngle) > 0) az = 2 * Math.PI - az;
+
+            return {
+                elevation: deg(elevation),
+                azimuth: deg(az),
+                declination: deg(dec),
+                hourAngle: deg(hourAngle),
+                cosAz: cosAz
+            };
+        }
+
+        function calculate() {
+            const dateStr = document.getElementById('datePicker').value;
+            if (!dateStr) {
+                document.getElementById('resultElevation').innerHTML = '-<span class="result-unit">°</span>';
+                document.getElementById('resultAzimuth').innerHTML = '-<span class="result-unit">°</span>';
+                document.getElementById('resultDeclination').innerHTML = '-<span class="result-unit">°</span>';
+                document.getElementById('resultZenith').textContent = '-';
+                document.getElementById('shadowInfo').textContent = 'Выберите дату и нажмите «Рассчитать»';
+                document.getElementById('shadowDetails').textContent = 'Выберите дату и нажмите «Рассчитать»';
+                drawSunPath(null, null);
+                drawShadow(null, null, 0, 0);
+                return;
+            }
+
+            const date = new Date(dateStr + 'T00:00:00');
+            const hours = parseInt(document.getElementById('hourInput').value) || 12;
+            const minutes = parseInt(document.getElementById('minuteInput').value) || 0;
+            const objHeight = parseFloat(document.getElementById('objHeight').value) || 5;
+            const objWidth = parseFloat(document.getElementById('objWidth').value) || 2;
+            const orient = parseInt(document.getElementById('groundOrientation').value) || 90;
+
+            const sun = calcSun(date, hours, minutes);
+
+            document.getElementById('resultElevation').innerHTML = sun.elevation.toFixed(1) + '<span class="result-unit">°</span>';
+            document.getElementById('resultAzimuth').innerHTML = sun.azimuth.toFixed(1) + '<span class="result-unit">°</span>';
+            document.getElementById('resultDeclination').innerHTML = sun.declination.toFixed(2) + '<span class="result-unit">°</span>';
+
+            const isZenith = sun.elevation > 85 && sun.elevation < 90;
+            document.getElementById('resultZenith').textContent = isZenith ? '☀️ Почти в зените' : (sun.elevation > 0 ? '🌅 Над горизонтом' : '🌜 Под горизонтом');
+
+            // Длина тени
+            const elevRad = rad(sun.elevation);
+            const tanElev = Math.tan(elevRad);
+            let shadowLen = 0;
+            let shadowLenText = '';
+            if (sun.elevation > 0.5) {
+                shadowLen = objHeight / tanElev;
+                shadowLenText = shadowLen.toFixed(1) + ' м';
+            } else if (sun.elevation > 0) {
+                shadowLen = 999;
+                shadowLenText = 'очень длинная (→ ∞)';
+            } else {
+                shadowLen = -1;
+                shadowLenText = 'тени нет (солнце под горизонтом)';
+            }
+
+            // Азимут тени = азимут солнца + 180°
+            const shadowAzimuth = (sun.azimuth + 180) % 360;
+
+            // Направление словами
+            function dirName(az) {
+                const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+                const idx = Math.round(az / 45) % 8;
+                return ['север', 'северо-восток', 'восток', 'юго-восток', 'юг', 'юго-запад', 'запад', 'северо-запад'][idx];
+            }
+
+            const sunDir = dirName(sun.azimuth);
+            const shadowDir = dirName(shadowAzimuth);
+
+            document.getElementById('shadowInfo').innerHTML =
+                '<strong>☀️ Солнце:</strong> азимут <b>' + sun.azimuth.toFixed(1) + '°</b> (' + sunDir + '), высота <b>' + sun.elevation.toFixed(1) + '°</b><br>' +
+                '<strong>🌑 Тень:</strong> азимут <b>' + shadowAzimuth.toFixed(1) + '°</b> (' + shadowDir + ')<br>' +
+                '<strong>📏 Длина тени:</strong> <b>' + shadowLenText + '</b> (объект ' + objHeight + ' м)';
+
+            // Детализация тени на плоскости
+            const shadowWidth = shadowLen > 0 && sun.elevation > 5 ? objWidth * (objHeight / Math.max(shadowLen, 0.1)) : objWidth;
+            let shadowArea = shadowLen > 0 ? shadowWidth * shadowLen : 0;
+
+            let details = '';
+            details += '<strong>📐 Параметры тени на земле:</strong><br>';
+            details += '• Высота объекта: <b>' + objHeight + ' м</b>, ширина: <b>' + objWidth + ' м</b><br>';
+            details += '• Тень направлена: <b>' + shadowDir + '</b> (азимут ' + shadowAzimuth.toFixed(0) + '°)<br>';
+            if (shadowLen > 0 && shadowLen < 999) {
+                details += '• Длина тени от кончика: <b>' + shadowLen.toFixed(1) + ' м</b><br>';
+                details += '• Размытая ширина тени: ~<b>' + shadowWidth.toFixed(1) + ' м</b><br>';
+                details += '• Площадь тени: ~<b>' + shadowArea.toFixed(1) + ' м²</b><br>';
+                details += '• Коэффициент удлинения: <b>' + (shadowLen / objHeight).toFixed(2) + '×</b> (тень в ' + (shadowLen / objHeight).toFixed(1) + ' раз длиннее высоты)';
+            } else if (shadowLen === -1) {
+                details += '• 🔆 Тени нет — солнце под горизонтом';
+            } else {
+                details += '• 🌅 Солнце почти на горизонте — тень стремится к бесконечности';
+            }
+
+            document.getElementById('shadowDetails').innerHTML = details;
+
+            drawSunPath(sun.elevation, sun.azimuth);
+            drawShadow(sun.elevation, sun.azimuth, objHeight, objWidth, orient);
+        }
+
+        function drawSunPath(elevation, azimuth) {
+            const canvas = document.getElementById('sunPathCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            // Фоновое небо
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, '#1a237e');
+            grad.addColorStop(0.4, '#42a5f5');
+            grad.addColorStop(0.7, '#bbdefb');
+            grad.addColorStop(1, '#f5f5f5');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            const cx = w / 2, cy = h * 0.75;
+            const r = Math.min(w, h) * 0.55;
+
+            // Горизонт
+            ctx.beginPath();
+            ctx.moveTo(0, cy);
+            ctx.lineTo(w, cy);
+            ctx.strokeStyle = '#4caf50';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#4caf50';
+            ctx.font = '11px Segoe UI';
+            ctx.fillText('Горизонт', w - 70, cy - 5);
+
+            // Полукруг — небесная полусфера
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, Math.PI, 0);
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Линии высоты
+            for (let alt = 30; alt <= 60; alt += 30) {
+                const rAlt = r * (1 - alt / 90);
+                ctx.beginPath();
+                ctx.arc(cx, cy, rAlt, Math.PI, 0);
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.font = '10px Segoe UI';
+                ctx.fillText(alt + '°', cx + rAlt + 5, cy);
+            }
+
+            // Стороны света
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.font = '12px Segoe UI';
+            ctx.fillText('N (север)', cx - 10, 25);
+            ctx.fillText('E (восток)', w - 30, cy - 5);
+            ctx.fillText('W (запад)', 5, cy - 5);
+            ctx.fillText('S (юг)', cx - 10, h - 10);
+
+            // Зенит
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.font = '10px Segoe UI';
+            ctx.fillText('Зенит', cx - 10, cy - r + 10);
+
+            // Север — наверх
+            const altRad = rad(elevation || 0);
+            const dist = r * (1 - Math.max(elevation, 0) / 90);
+            const angle = rad(azimuth || 0);
+
+            if (elevation !== null && azimuth !== null && elevation > 0) {
+                // Положение солнца
+                const sx = cx + dist * Math.sin(angle);
+                const sy = cy - dist * Math.cos(angle);
+
+                const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, 25);
+                grd.addColorStop(0, '#FFD700');
+                grd.addColorStop(0.3, '#FFA500');
+                grd.addColorStop(1, 'rgba(255,215,0,0)');
+                ctx.fillStyle = grd;
+                ctx.beginPath();
+                ctx.arc(sx, sy, 25, 0, 2 * Math.PI);
+                ctx.fill();
+
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(sx, sy, 12, 0, 2 * Math.PI);
+                ctx.fill();
+
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px Segoe UI';
+                ctx.fillText('☀️ ' + elevation.toFixed(1) + '°', sx - 30, sy - 18);
+
+                // Линия к горизонту
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(cx + dist * Math.sin(angle), cy);
+                ctx.strokeStyle = 'rgba(255,255,0,0.3)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Траектория солнца (примерная дуга)
+                ctx.beginPath();
+                for (let a = 0; a <= 180; a += 5) {
+                    const alt2 = a;
+                    const dist2 = r * (1 - alt2 / 90);
+                    const x2 = cx + dist2 * Math.sin(angle);
+                    const y2 = cy - dist2 * Math.cos(angle);
+                    if (a === 0) ctx.moveTo(x2, y2);
+                    else ctx.lineTo(x2, y2);
+                }
+                ctx.strokeStyle = 'rgba(255,200,50,0.2)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function drawShadow(elevation, azimuth, height, width, orient) {
+            const canvas = document.getElementById('shadowCanvas');
+            const ctx = canvas.getContext('2d');
+            const s = canvas.width;
+            ctx.clearRect(0, 0, s, s);
+
+            if (!elevation || elevation <= 0) {
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '14px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText('☀️ Солнце под горизонтом — тени нет', s/2, s/2);
+                return;
+            }
+
+            // Земля
+            const grad = ctx.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
+            grad.addColorStop(0, '#f0f0f0');
+            grad.addColorStop(1, '#ddd');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, s, s);
+
+            // Сетка — направления
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 360; i += 45) {
+                ctx.beginPath();
+                ctx.moveTo(s/2, s/2);
+                ctx.lineTo(s/2 + s/2 * Math.cos(rad(i - 90)), s/2 + s/2 * Math.sin(rad(i - 90)));
+                ctx.stroke();
+            }
+
+            // Окружности
+            for (let r = 1; r <= 3; r++) {
+                ctx.beginPath();
+                ctx.arc(s/2, s/2, s/6 * r, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // Подписи
+            ctx.fillStyle = '#999';
+            ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'center';
+            const dirs = [
+                { name: 'N', angle: 0 }, { name: 'NE', angle: 45 },
+                { name: 'E', angle: 90 }, { name: 'SE', angle: 135 },
+                { name: 'S', angle: 180 }, { name: 'SW', angle: 225 },
+                { name: 'W', angle: 270 }, { name: 'NW', angle: 315 }
+            ];
+            for (let d of dirs) {
+                const a = rad(d.angle - 90);
+                ctx.fillText(d.name, s/2 + (s/2 - 20) * Math.cos(a), s/2 + (s/2 - 20) * Math.sin(a) + 4);
+            }
+
+            // Объект (точка)
+            ctx.fillStyle = '#2c3e50';
+            ctx.beginPath();
+            ctx.arc(s/2, s/2, 6, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('Объект', s/2, s/2 - 18);
+
+            // Тень
+            const elevRad = rad(elevation);
+            const maxShadowScale = s * 0.42;
+            const shadowAz = rad(azimuth + 180 - 90);
+            const tanEl = Math.tan(elevRad);
+            let shadowLenPx = maxShadowScale;
+
+            if (tanEl > 0.01) {
+                shadowLenPx = Math.min(maxShadowScale, (height / tanEl) / 10 * maxShadowScale);
+            }
+
+            const ex = s/2 + shadowLenPx * Math.cos(shadowAz);
+            const ey = s/2 + shadowLenPx * Math.sin(shadowAz);
+
+            // Градиент тени
+            const shadowGrad = ctx.createLinearGradient(s/2, s/2, ex, ey);
+            shadowGrad.addColorStop(0, 'rgba(0,0,0,0.25)');
+            shadowGrad.addColorStop(0.3, 'rgba(0,0,0,0.35)');
+            shadowGrad.addColorStop(0.7, 'rgba(0,0,0,0.25)');
+            shadowGrad.addColorStop(1, 'rgba(0,0,0,0.05)');
+
+            const sw = Math.min(15, 3 + (width / height) * 10);
+
+            ctx.save();
+            ctx.translate(s/2, s/2);
+            ctx.rotate(shadowAz);
+            ctx.fillStyle = shadowGrad;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, shadowLenPx, sw, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.restore();
+
+            // Стрелка тени
+            ctx.beginPath();
+            ctx.moveTo(s/2, s/2);
+            ctx.lineTo(ex, ey);
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Солнце на карте
+            const sunAngle = rad(azimuth - 90);
+            const sunDist = 50;
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(s/2 + sunDist * Math.cos(sunAngle), s/2 + sunDist * Math.sin(sunAngle), 8, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#333';
+            ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('☀️', s/2 + sunDist * Math.cos(sunAngle), s/2 + sunDist * Math.sin(sunAngle) - 12);
+
+            // Масштаб
+            ctx.fillStyle = '#999';
+            ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'left';
+            const mVal = (height / Math.tan(elevRad)).toFixed(1);
+            if (mVal > 0) ctx.fillText('Масштаб: тень ' + mVal + ' м', 10, s - 10);
+        }
+
+        // Установить сегодняшнюю дату
+        window.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = String(today.getMonth() + 1).padStart(2, '0');
+            const d = String(today.getDate()).padStart(2, '0');
+            document.getElementById('datePicker').value = `${y}-${m}-${d}`;
+            calculate();
+        });
+    </script>
+</body>
+</html>
