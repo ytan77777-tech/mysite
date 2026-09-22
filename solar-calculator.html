@@ -221,8 +221,26 @@
             const eps = rad(23.4393 - 0.00000036 * d);
             const dec = Math.asin(Math.sin(eps) * Math.sin(eclipticLon));
 
-            // Часовой угол
-            const hourAngle = rad(15 * (hours + minutes / 60 - TZ) - LON + 180);
+            // Уравнение времени (в минутах)
+            const y2 = Math.tan(eps / 2) * Math.tan(eps / 2);
+            const sin2L = Math.sin(2 * eclipticLon);
+            const sinM = Math.sin(M);
+            const cosM = Math.cos(M);
+            const sin2M = Math.sin(2 * M);
+            const cos2M = Math.cos(2 * M);
+            const EOT = deg(
+                y2 * sin2L -
+                2 * (0.0167 * sinM + 0.0004 * sin2M) +
+                4 * y2 * (0.0167 * sinM + 0.0004 * sin2M) * cos2M -
+                0.5 * y2 * y2 * Math.sin(4 * eclipticLon) -
+                1.25 * (0.0167 * 0.0167) * sin2M
+            ) * 4;
+
+            // Часовой угол (градусы)
+            // local_solar_time = clock_time + EOT/60 + (lon - tz_meridian)/15
+            const TZ_meridian = TZ * 15;
+            const solarTime = hours + minutes / 60 + EOT / 60 + (LON - TZ_meridian) / 15;
+            const hourAngle = rad(15 * (solarTime - 12));
 
             // Высота
             const sinAlt = Math.sin(rad(LAT)) * Math.sin(dec) + Math.cos(rad(LAT)) * Math.cos(dec) * Math.cos(hourAngle);
@@ -238,7 +256,8 @@
                 azimuth: deg(az),
                 declination: deg(dec),
                 hourAngle: deg(hourAngle),
-                cosAz: cosAz
+                cosAz: cosAz,
+                EOT: EOT
             };
         }
 
