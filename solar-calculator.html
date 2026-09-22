@@ -262,7 +262,20 @@
 
             // Высота
             const sinAlt = Math.sin(rad(LAT)) * Math.sin(dec) + Math.cos(rad(LAT)) * Math.cos(dec) * Math.cos(hourAngle);
-            const elevation = Math.asin(sinAlt);
+            const elevationGeom = Math.asin(sinAlt);
+
+            // Атмосферная рефракция (Saemundsson, IAU) — результат в градусах
+            let refraction = 0;
+            const hGrad = deg(elevationGeom);
+            if (hGrad > -2) {
+                const Rarcmin = 1.02 / Math.tan(rad(hGrad + 10.3 / (hGrad + 5.11)));
+                refraction = Math.min(Rarcmin, 34.5) / 60;
+                if (refraction < 0) refraction = 0;
+            }
+
+            const elevation = elevationGeom + rad(refraction);
+
+            // Азимут (геометрический — азимут от рефракции почти не меняется)
 
             // Азимут
             const cosAz = (Math.sin(dec) - Math.sin(rad(LAT)) * sinAlt) / (Math.cos(rad(LAT)) * Math.cos(elevation));
@@ -271,6 +284,8 @@
 
             return {
                 elevation: deg(elevation),
+                elevationGeom: deg(elevationGeom),
+                refraction: refraction,
                 azimuth: deg(az),
                 declination: deg(dec),
                 hourAngle: deg(hourAngle),
@@ -415,7 +430,9 @@ function dirName(az) {
             const shadowDir = dirName(shadowAzimuth);
 
             document.getElementById('shadowInfo').innerHTML =
-                '<strong>☀️ Солнце:</strong> азимут <b>' + sun.azimuth.toFixed(1) + '°</b> (' + sunDir + '), высота <b>' + sun.elevation.toFixed(1) + '°</b><br>' +
+                '<strong>☀️ Солнце:</strong> азимут <b>' + sun.azimuth.toFixed(1) + '°</b> (' + sunDir + '), высота видимая <b>' + sun.elevation.toFixed(1) + '°</b> (геом. ' + sun.elevationGeom.toFixed(1) + '°)' +
+                (sun.refraction > 0.02 ? ' — рефракция +' + sun.refraction.toFixed(2) + '°' : '') +
+                '<br>' +
                 '<strong>🌑 Тень:</strong> азимут <b>' + shadowAzimuth.toFixed(1) + '°</b> (' + shadowDir + ')<br>' +
                 '<strong>📏 Длина тени:</strong> <b>' + shadowLenText + '</b> (объект ' + objHeight + ' м)';
 
