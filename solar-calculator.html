@@ -505,6 +505,30 @@
                 ctx.fillText(d.name, s/2 + (s/2 - 20) * Math.cos(a), s/2 + (s/2 - 20) * Math.sin(a) + 4);
             }
 
+            // Шкала 360° (азимут): 0° = север, дальше по часовой стрелке
+            const degreeRing = s/2 - 40;
+            for (let deg = 0; deg < 360; deg += 10) {
+                const isMajor = deg % 45 === 0;
+                const isMid = deg % 30 === 0;
+                const tickLen = isMajor ? 8 : (isMid ? 6 : 3);
+                const a = rad(deg - 90);
+                ctx.strokeStyle = isMajor ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.2)';
+                ctx.lineWidth = isMajor ? 1.5 : 1;
+                ctx.beginPath();
+                ctx.moveTo(s/2 + degreeRing * Math.cos(a), s/2 + degreeRing * Math.sin(a));
+                ctx.lineTo(s/2 + (degreeRing - tickLen) * Math.cos(a), s/2 + (degreeRing - tickLen) * Math.sin(a));
+                ctx.stroke();
+            }
+
+            // Градусные подписи (каждые 45°)
+            ctx.fillStyle = '#666';
+            ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'center';
+            for (let deg = 0; deg < 360; deg += 45) {
+                const a = rad(deg - 90);
+                ctx.fillText(deg + '°', s/2 + (s/2 - 58) * Math.cos(a), s/2 + (s/2 - 58) * Math.sin(a) + 4);
+            }
+
             // Объект (точка)
             ctx.fillStyle = '#2c3e50';
             ctx.beginPath();
