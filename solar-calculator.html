@@ -102,6 +102,10 @@
             <div class="card">
                 <div class="section-title">📅 Дата и время</div>
 
+                <div style="margin-bottom:12px;">
+                    <button onclick="useNow()" style="background:#28a745; margin-top:0;">🕐 Сейчас (время с компьютера)</button>
+                </div>
+
                 <div class="input-group">
                     <label for="datePicker">Дата:</label>
                     <input type="date" id="datePicker">
@@ -167,6 +171,16 @@
                         <div>Солнце в зените?</div>
                         <div class="result-value" style="font-size:16px;" id="resultZenith">-</div>
                     </div>
+                </div>
+
+                <div class="shadow-info" id="solarNoonInfo" style="background:#fff3cd; border-left:4px solid #ffc107;">
+                    <strong>🕐 Истинный солнечный полдень:</strong> <span id="solarNoonValue">—</span><br>
+                    <small>В этот момент солнце точно на юге (180°), тень указывает на север. Удобно для калибровки компаса.</small>
+                </div>
+
+                <div class="shadow-info" id="solarPanelInfo" style="background:#d4edda; border-left:4px solid #28a745;">
+                    <strong>🔆 Оптимальный угол солнечных панелей:</strong><br>
+                    <span id="solarPanelTilt">—</span>
                 </div>
 
                 <div class="sun-chart">
@@ -261,6 +275,45 @@
             };
         }
 
+        function calcSolarNoon(date) {
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const year = date.getFullYear();
+            let a = Math.floor((14 - month) / 12);
+            let y = year + 4800 - a;
+            let m = month + 12 * a - 3;
+            let JDN = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+            const d = JDN - 2451545;
+            const M = rad(357.5291 + 0.98560028 * d);
+            const C = 1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M);
+            const eclipticLon = rad(280.4665 + 0.98560028 * d + C);
+            const eps = rad(23.4393 - 0.00000036 * d);
+            const y2 = Math.tan(eps / 2) * Math.tan(eps / 2);
+            const EOT = deg(
+                y2 * Math.sin(2 * eclipticLon) -
+                2 * (0.0167 * Math.sin(M) + 0.0004 * Math.sin(2 * M)) +
+                4 * y2 * (0.0167 * Math.sin(M) + 0.0004 * Math.sin(2 * M)) * Math.cos(2 * M) -
+                0.5 * y2 * y2 * Math.sin(4 * eclipticLon) -
+                1.25 * (0.0167 * 0.0167) * Math.sin(2 * M)
+            ) * 4;
+            const lonCorr = (LON - TZ * 15) / 15;
+            const noonMinutes = 720 - EOT - lonCorr * 60;
+            const h = Math.floor(noonMinutes / 60) % 24;
+            const min = Math.round(noonMinutes % 60);
+            return { hours: h, minutes: min, EOT: EOT };
+        }
+
+        function useNow() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const mon = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            document.getElementById('datePicker').value = `${y}-${mon}-${d}`;
+            document.getElementById('hourInput').value = now.getHours();
+            document.getElementById('minuteInput').value = now.getMinutes();
+            calculate();
+        }
+
         function calculate() {
             const dateStr = document.getElementById('datePicker').value;
             if (!dateStr) {
@@ -283,6 +336,44 @@
             const orient = parseInt(document.getElementById('groundOrientation').value) || 90;
 
             const sun = calcSun(date, hours, minutes);
+            const noon = calcSolarNoon(date);
+
+            const noonStr = String(noon.hours).padStart(2, '0') + ':' + String(noon.minutes).padStart(2, '0');
+            document.getElementById('solarNoonValue').textContent = noonStr + ' MSK (солнце на юге, 180°)';
+
+            // Оптимальный угол солнечных панелей
+            let panelTiltText = '';
+            if (sun.elevation > 0) {
+                const tiltNow = Math.max(0, 90 - sun.elevation);
+                panelTiltText = 'В текущее время: наклон к горизонту <b>' + tiltNow.toFixed(0) + '°</b> (перпендикулярно солнечным лучам, азимут панели ' +
+                    sun.azimuth.toFixed(0) + '° / ' + dirName(sun.azimuth) + ')<br>';
+            } else {
+                panelTiltText = 'Солнце под горизонтом — панели можно не ориентировать в текущий момент.<br>';
+            }
+
+            // Среднегодовой угол для Пскова
+            const annualTilt = LAT;
+
+            // Лучший угол по сезону
+            const month = date.getMonth() + 1;
+            let seasonalTilt, seasonName;
+            if (month >= 11 || month <= 2) {
+                seasonalTilt = LAT + 15; seasonName = 'зима';
+            } else if (month >= 3 && month <= 5) {
+                seasonalTilt = LAT - 5; seasonName = 'весна';
+            } else if (month >= 6 && month <= 8) {
+                seasonalTilt = LAT - 15; seasonName = 'лето';
+            } else {
+                seasonalTilt = LAT + 5; seasonName = 'осень';
+            }
+
+            panelTiltText += 'Среднегодовой оптимальный наклон для Пскова (фиксированные панели): <b>' + annualTilt.toFixed(0) +
+                '°</b> к горизонту, азимут <b>180° (юг)</b><br>';
+            panelTiltText += 'Оптимальный наклон для текущего сезона (' + seasonName + '): <b>' + seasonalTilt.toFixed(0) +
+                '°</b> к горизонту';
+
+            document.getElementById('solarPanelInfo').innerHTML =
+                '<strong>🔆 Оптимальный угол солнечных панелей:</strong><br>' + panelTiltText;
 
             document.getElementById('resultElevation').innerHTML = sun.elevation.toFixed(1) + '<span class="result-unit">°</span>';
             document.getElementById('resultAzimuth').innerHTML = sun.azimuth.toFixed(1) + '<span class="result-unit">°</span>';
@@ -311,8 +402,11 @@
             const shadowAzimuth = (sun.azimuth + 180) % 360;
 
             // Направление словами
-            function dirName(az) {
-                const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+function dirName(az) {
+                const idx = Math.round(az / 45) % 8;
+                return ['север', 'северо-восток', 'восток', 'юго-восток', 'юг', 'юго-запад', 'запад', 'северо-запад'][idx];
+            }
+            function dirName2(az) {
                 const idx = Math.round(az / 45) % 8;
                 return ['север', 'северо-восток', 'восток', 'юго-восток', 'юг', 'юго-запад', 'запад', 'северо-запад'][idx];
             }
