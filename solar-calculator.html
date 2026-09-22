@@ -452,130 +452,152 @@ function dirName(az) {
             ctx.clearRect(0, 0, w, h);
 
             // Небо
-            const sky = ctx.createLinearGradient(0, 0, 0, h * 0.6);
+            const sky = ctx.createLinearGradient(0, 0, 0, h * 0.58);
             sky.addColorStop(0, '#87ceeb');
             sky.addColorStop(1, '#e0f2fe');
             ctx.fillStyle = sky;
-            ctx.fillRect(0, 0, w, h * 0.6);
+            ctx.fillRect(0, 0, w, h * 0.58);
 
             // Земля
-            const ground = ctx.createLinearGradient(0, h * 0.6, 0, h);
+            const ground = ctx.createLinearGradient(0, h * 0.58, 0, h);
             ground.addColorStop(0, '#a5d6a7');
             ground.addColorStop(1, '#c8e6c9');
             ctx.fillStyle = ground;
-            ctx.fillRect(0, h * 0.6, w, h * 0.4);
+            ctx.fillRect(0, h * 0.58, w, h * 0.42);
 
-            // Горизонт
             ctx.beginPath();
-            ctx.moveTo(0, h * 0.6);
-            ctx.lineTo(w, h * 0.6);
+            ctx.moveTo(0, h * 0.58);
+            ctx.lineTo(w, h * 0.58);
             ctx.strokeStyle = '#66bb6a';
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Опорная стойка
-            const baseX = w * 0.5;
-            const baseY = h * 0.62;
-            const panelLen = 130;
+            const cx = w / 2;
+            const groundY = h * 0.58;
+            const panelLen = 140;
+            const panelH = 20;
 
-            // Солнце (высота)
-            const sunAngle = rad(elevation) || 0;
-            const sunX = baseX, sunY = baseY - 150 - 40 * Math.cos(sunAngle);
-            const sunR = 28;
-            const grd = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunR * 2.5);
-            grd.addColorStop(0, '#ffe082');
-            grd.addColorStop(0.4, '#ffca28');
-            grd.addColorStop(1, 'rgba(255,202,40,0)');
+            // Углы
+            const elevRad = rad(elevation || 30);
+            const tilt = Math.max(0, 90 - (elevation || 30));
+            const tiltRad = rad(tilt);
+
+            // Центр панели (точка крепления, где падает луч)
+            const panelCx = cx;
+            const panelCy = groundY - 30;
+
+            // Солнце — строго на нормали панели (под углом elevation к горизонту)
+            const sunRadius = 120;
+            const sunX = panelCx + sunRadius * Math.cos(elevRad);
+            const sunY = panelCy - sunRadius * Math.sin(elevRad);
+
+            // Гало солнца
+            const grd = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 50);
+            grd.addColorStop(0, '#fff9c4');
+            grd.addColorStop(0.3, '#ffd54f');
+            grd.addColorStop(1, 'rgba(255,213,79,0)');
             ctx.fillStyle = grd;
             ctx.beginPath();
-            ctx.arc(sunX, sunY, sunR * 2.5, 0, 2 * Math.PI);
+            ctx.arc(sunX, sunY, 50, 0, 2 * Math.PI);
             ctx.fill();
 
             ctx.fillStyle = '#ffb300';
             ctx.beginPath();
-            ctx.arc(sunX, sunY, sunR, 0, 2 * Math.PI);
+            ctx.arc(sunX, sunY, 22, 0, 2 * Math.PI);
             ctx.fill();
 
-            // Лучи к панели
-            const rayEndX = baseX + panelLen * Math.cos(sunAngle) * 0.5;
-            const rayEndY = baseY - panelLen * Math.sin(sunAngle) * 0.5;
-            ctx.setLineDash([6, 4]);
-            ctx.strokeStyle = 'rgba(255,183,0,0.7)';
-            ctx.lineWidth = 2;
+            // Луч от солнца к центру панели
+            ctx.strokeStyle = '#ffab00';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([8, 5]);
             ctx.beginPath();
-            ctx.moveTo(sunX, sunY + sunR * 0.6);
-            ctx.lineTo(rayEndX, rayEndY - 10);
+            ctx.moveTo(sunX, sunY + 18);
+            ctx.lineTo(panelCx, panelCy);
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Панель (перпендикулярно лучам)
-            const tilt = elevation > 0 ? Math.max(0, 90 - elevation) : 0;
-            const tiltRad = rad(tilt);
+            // Панель: направление вдоль d, нормаль n смотрит на солнце
+            const dx = Math.sin(elevRad);
+            const dy = Math.cos(elevRad);
+            const nx = Math.cos(elevRad);
+            const ny = -Math.sin(elevRad);
+            const half = panelLen / 2;
 
-            // Центр панели от основания
-            const pivotX = baseX;
-            const pivotY = baseY - 30;
-
-            // Панель: прямоугольник, наклонённый на tilt от горизонтали
-            ctx.save();
-            ctx.translate(pivotX, pivotY);
-            ctx.rotate(-rad(tilt));
-
-            // Тень панели от Солнца на земле
-            const shadowLen = 60 + (90 - tilt) * 1.2;
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            // Тень панели на земле
+            ctx.fillStyle = 'rgba(0,0,0,0.12)';
             ctx.beginPath();
-            ctx.ellipse(0, 30, panelLen * 0.8, 6, 0, 0, 2 * Math.PI);
+            ctx.ellipse(panelCx, groundY, panelLen * 0.75, 5, 0, 0, 2 * Math.PI);
             ctx.fill();
 
-            // Корпус панели
-            ctx.fillStyle = '#1a237e';
-            ctx.fillRect(-panelLen / 2, -8, panelLen, 16);
-            // Ячейки
-            ctx.fillStyle = '#283593';
-            for (let i = -panelLen / 2 + 8; i < panelLen / 2 - 8; i += 16) {
-                ctx.fillRect(i, -5, 10, 10);
-            }
-            ctx.strokeStyle = '#0d47a1';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(-panelLen / 2, -8, panelLen, 16);
-            ctx.restore();
-
-            // Стойка
-            ctx.strokeStyle = '#546e7a';
-            ctx.lineWidth = 5;
-            ctx.beginPath();
-            ctx.moveTo(baseX, baseY);
-            ctx.lineTo(pivotX, pivotY);
-            ctx.stroke();
-            ctx.strokeStyle = '#78909c';
+            // Стойка и подкос
+            ctx.strokeStyle = '#90a4ae';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(baseX - 8, baseY);
-            ctx.lineTo(baseX + 8, baseY);
+            ctx.moveTo(panelCx, panelCy);
+            ctx.lineTo(panelCx, groundY);
             ctx.stroke();
+            ctx.strokeStyle = '#546e7a';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(panelCx - 10, groundY);
+            ctx.lineTo(panelCx + 10, groundY);
+            ctx.stroke();
+
+            // Корпус панели (повёрнут на угол atan2(dy,dx), чтобы лежать вдоль d)
+            ctx.save();
+            ctx.translate(panelCx, panelCy);
+            ctx.rotate(Math.atan2(dy, dx));
+            ctx.fillStyle = '#1a237e';
+            ctx.fillRect(-half, -panelH / 2, panelLen, panelH);
+            ctx.strokeStyle = '#0d47a1';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-half, -panelH / 2, panelLen, panelH);
+            ctx.fillStyle = '#283593';
+            for (let x = -half + 10; x < half - 10; x += 18) {
+                ctx.fillRect(x, -panelH / 2 + 3, 12, panelH - 6);
+            }
+            ctx.restore();
+
+            // Значок прямого угла 90° между панелью (d) и нормалью (n) в точке падения луча
+            const sq = 15;
+            const Ax = panelCx + sq * dx, Ay = panelCy + sq * dy;
+            const Bx = panelCx + sq * dx + sq * nx, By = panelCy + sq * dy + sq * ny;
+            const Dx = panelCx + sq * nx, Dy = panelCy + sq * ny;
+            ctx.strokeStyle = '#e53935';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.moveTo(Ax, Ay);
+            ctx.lineTo(Bx, By);
+            ctx.lineTo(Dx, Dy);
+            ctx.stroke();
+            ctx.fillStyle = '#e53935';
+            ctx.font = 'bold 11px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('90°', Bx + nx * 12, By + ny * 12 + 4);
 
             // Подписи
             ctx.fillStyle = '#333';
             ctx.font = 'bold 14px Segoe UI';
             ctx.textAlign = 'center';
-            ctx.fillText('☀️ Высота солнца: ' + (elevation || 0).toFixed(1) + '°', w / 2, 28);
+            ctx.fillText('☀️ Высота: ' + (elevation || 0).toFixed(1) + '°', w / 2, 25);
 
             ctx.fillStyle = '#2e7d32';
             ctx.font = 'bold 13px Segoe UI';
-            ctx.fillText('Наклон панели: ' + tilt.toFixed(0) + '°', w / 2, h - 12);
+            ctx.fillText('Наклон панели: ' + tilt.toFixed(0) + '°   |   Перпендикулярно солнцу ✓', w / 2, h - 10);
 
-            // Стрелка-указатель угла
-            ctx.strokeStyle = '#e53935';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([3, 3]);
-            ctx.beginPath();
-            ctx.arc(pivotX, pivotY, 40, -rad(tilt), 0);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.fillStyle = '#e53935';
-            ctx.font = '12px Segoe UI';
-            ctx.fillText(tilt.toFixed(0) + '°', pivotX + 50, pivotY - 30);
+            // Дуга угла панели (от горизонта к панели)
+            if (tilt > 2) {
+                ctx.strokeStyle = 'rgba(229,57,53,0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.arc(panelCx, panelCy, 35, 0, tiltRad);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#e53935';
+                ctx.font = '11px Segoe UI';
+                ctx.fillText(tilt.toFixed(0) + '°', panelCx + 38, panelCy - 20);
+            }
         }
 
         function drawSunPath(elevation, azimuth) {
