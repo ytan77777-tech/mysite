@@ -183,6 +183,10 @@
                     <span id="solarPanelTilt">—</span>
                 </div>
 
+                <div class="panel-vis" style="margin-top:15px; text-align:center;">
+                    <canvas id="panelCanvas" width="380" height="300" style="width:100%; max-width:380px; border:1px solid #e9ecef; border-radius:10px; background:#f8f9fa;"></canvas>
+                </div>
+
                 <div class="sun-chart">
                     <canvas id="sunPathCanvas" width="400" height="400"></canvas>
                 </div>
@@ -406,10 +410,6 @@ function dirName(az) {
                 const idx = Math.round(az / 45) % 8;
                 return ['север', 'северо-восток', 'восток', 'юго-восток', 'юг', 'юго-запад', 'запад', 'северо-запад'][idx];
             }
-            function dirName2(az) {
-                const idx = Math.round(az / 45) % 8;
-                return ['север', 'северо-восток', 'восток', 'юго-восток', 'юг', 'юго-запад', 'запад', 'северо-запад'][idx];
-            }
 
             const sunDir = dirName(sun.azimuth);
             const shadowDir = dirName(shadowAzimuth);
@@ -442,6 +442,140 @@ function dirName(az) {
 
             drawSunPath(sun.elevation, sun.azimuth);
             drawShadow(sun.elevation, sun.azimuth, objHeight, objWidth, orient);
+            drawPanel(sun.elevation);
+        }
+
+        function drawPanel(elevation) {
+            const canvas = document.getElementById('panelCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            // Небо
+            const sky = ctx.createLinearGradient(0, 0, 0, h * 0.6);
+            sky.addColorStop(0, '#87ceeb');
+            sky.addColorStop(1, '#e0f2fe');
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, w, h * 0.6);
+
+            // Земля
+            const ground = ctx.createLinearGradient(0, h * 0.6, 0, h);
+            ground.addColorStop(0, '#a5d6a7');
+            ground.addColorStop(1, '#c8e6c9');
+            ctx.fillStyle = ground;
+            ctx.fillRect(0, h * 0.6, w, h * 0.4);
+
+            // Горизонт
+            ctx.beginPath();
+            ctx.moveTo(0, h * 0.6);
+            ctx.lineTo(w, h * 0.6);
+            ctx.strokeStyle = '#66bb6a';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Опорная стойка
+            const baseX = w * 0.5;
+            const baseY = h * 0.62;
+            const panelLen = 130;
+
+            // Солнце (высота)
+            const sunAngle = rad(elevation) || 0;
+            const sunX = baseX, sunY = baseY - 150 - 40 * Math.cos(sunAngle);
+            const sunR = 28;
+            const grd = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunR * 2.5);
+            grd.addColorStop(0, '#ffe082');
+            grd.addColorStop(0.4, '#ffca28');
+            grd.addColorStop(1, 'rgba(255,202,40,0)');
+            ctx.fillStyle = grd;
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, sunR * 2.5, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffb300';
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, sunR, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Лучи к панели
+            const rayEndX = baseX + panelLen * Math.cos(sunAngle) * 0.5;
+            const rayEndY = baseY - panelLen * Math.sin(sunAngle) * 0.5;
+            ctx.setLineDash([6, 4]);
+            ctx.strokeStyle = 'rgba(255,183,0,0.7)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(sunX, sunY + sunR * 0.6);
+            ctx.lineTo(rayEndX, rayEndY - 10);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Панель (перпендикулярно лучам)
+            const tilt = elevation > 0 ? Math.max(0, 90 - elevation) : 0;
+            const tiltRad = rad(tilt);
+
+            // Центр панели от основания
+            const pivotX = baseX;
+            const pivotY = baseY - 30;
+
+            // Панель: прямоугольник, наклонённый на tilt от горизонтали
+            ctx.save();
+            ctx.translate(pivotX, pivotY);
+            ctx.rotate(-rad(tilt));
+
+            // Тень панели от Солнца на земле
+            const shadowLen = 60 + (90 - tilt) * 1.2;
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.beginPath();
+            ctx.ellipse(0, 30, panelLen * 0.8, 6, 0, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Корпус панели
+            ctx.fillStyle = '#1a237e';
+            ctx.fillRect(-panelLen / 2, -8, panelLen, 16);
+            // Ячейки
+            ctx.fillStyle = '#283593';
+            for (let i = -panelLen / 2 + 8; i < panelLen / 2 - 8; i += 16) {
+                ctx.fillRect(i, -5, 10, 10);
+            }
+            ctx.strokeStyle = '#0d47a1';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-panelLen / 2, -8, panelLen, 16);
+            ctx.restore();
+
+            // Стойка
+            ctx.strokeStyle = '#546e7a';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(baseX, baseY);
+            ctx.lineTo(pivotX, pivotY);
+            ctx.stroke();
+            ctx.strokeStyle = '#78909c';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(baseX - 8, baseY);
+            ctx.lineTo(baseX + 8, baseY);
+            ctx.stroke();
+
+            // Подписи
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('☀️ Высота солнца: ' + (elevation || 0).toFixed(1) + '°', w / 2, 28);
+
+            ctx.fillStyle = '#2e7d32';
+            ctx.font = 'bold 13px Segoe UI';
+            ctx.fillText('Наклон панели: ' + tilt.toFixed(0) + '°', w / 2, h - 12);
+
+            // Стрелка-указатель угла
+            ctx.strokeStyle = '#e53935';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.arc(pivotX, pivotY, 40, -rad(tilt), 0);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#e53935';
+            ctx.font = '12px Segoe UI';
+            ctx.fillText(tilt.toFixed(0) + '°', pivotX + 50, pivotY - 30);
         }
 
         function drawSunPath(elevation, azimuth) {
