@@ -850,27 +850,19 @@ function dirName(az) {
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Солнце на карте — единый маркер с подписью
+            // Солнце на карте
             const sunAngle = rad(azimuth - 90);
             const sunDist = 50;
             const sunMapX = s/2 + sunDist * Math.cos(sunAngle);
             const sunMapY = s/2 + sunDist * Math.sin(sunAngle);
-            const sg = ctx.createRadialGradient(sunMapX, sunMapY, 0, sunMapX, sunMapY, 16);
-            sg.addColorStop(0, '#FFD700');
-            sg.addColorStop(0.4, '#FFA500');
-            sg.addColorStop(1, 'rgba(255,165,0,0)');
-            ctx.fillStyle = sg;
-            ctx.beginPath();
-            ctx.arc(sunMapX, sunMapY, 16, 0, 2 * Math.PI);
-            ctx.fill();
             ctx.fillStyle = '#FFA500';
             ctx.beginPath();
-            ctx.arc(sunMapX, sunMapY, 7, 0, 2 * Math.PI);
+            ctx.arc(sunMapX, sunMapY, 6, 0, 2 * Math.PI);
             ctx.fill();
             ctx.fillStyle = '#333';
-            ctx.font = 'bold 11px Segoe UI';
+            ctx.font = '10px Segoe UI';
             ctx.textAlign = 'center';
-            ctx.fillText('☀️ Солнце', sunMapX, sunMapY - 22);
+            ctx.fillText('Солнце', sunMapX, sunMapY - 14);
 
             // Легенда
             ctx.fillStyle = '#555';
