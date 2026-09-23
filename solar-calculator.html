@@ -503,12 +503,30 @@ function dirName(az) {
             const panelCx = cx;
             const panelCy = groundY - 30;
 
+            // Направление панели d и нормаль n (смотрит на солнце)
+            const dx = Math.sin(elevRad);
+            const dy = Math.cos(elevRad);
+            const nx = Math.cos(elevRad);
+            const ny = -Math.sin(elevRad);
+
             // Солнце — строго на нормали панели (под углом elevation к горизонту)
             const sunRadius = 120;
             const sunX = panelCx + sunRadius * Math.cos(elevRad);
             const sunY = panelCy - sunRadius * Math.sin(elevRad);
 
-            // Гало солнца
+            // Луч солнца: прямая по нормали к панели, проходит через центр панели и солнце
+            ctx.strokeStyle = '#ffab00';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([8, 5]);
+            const rayLen = sunRadius + 30;
+            const rayBack = 10;
+            ctx.beginPath();
+            ctx.moveTo(panelCx - nx * rayBack, panelCy - ny * rayBack);
+            ctx.lineTo(panelCx + nx * rayLen, panelCy + ny * rayLen);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Гало солнца (поверх луча)
             const grd = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 50);
             grd.addColorStop(0, '#fff9c4');
             grd.addColorStop(0.3, '#ffd54f');
@@ -523,21 +541,6 @@ function dirName(az) {
             ctx.arc(sunX, sunY, 22, 0, 2 * Math.PI);
             ctx.fill();
 
-            // Луч от солнца к центру панели
-            ctx.strokeStyle = '#ffab00';
-            ctx.lineWidth = 2.5;
-            ctx.setLineDash([8, 5]);
-            ctx.beginPath();
-            ctx.moveTo(sunX, sunY + 18);
-            ctx.lineTo(panelCx, panelCy);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Панель: направление вдоль d, нормаль n смотрит на солнце
-            const dx = Math.sin(elevRad);
-            const dy = Math.cos(elevRad);
-            const nx = Math.cos(elevRad);
-            const ny = -Math.sin(elevRad);
             const half = panelLen / 2;
 
             // Тень панели на земле
