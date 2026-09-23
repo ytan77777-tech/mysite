@@ -607,6 +607,17 @@ function dirName(az) {
 
             // Дуга угла панели (от горизонта к панели) — острый угол, подпись на середине дуги
             if (tilt > 2) {
+                // Горизонтальная опорная линия («воображаемая земля») в точке крепления панели
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(panelCx, panelCy);
+                ctx.lineTo(panelCx - 70, panelCy);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Дуга от опорной линии (горизонт, угол π) к панели
                 ctx.strokeStyle = 'rgba(229,57,53,0.4)';
                 ctx.lineWidth = 1.5;
                 ctx.setLineDash([3, 3]);
