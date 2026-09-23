@@ -602,7 +602,7 @@ function dirName(az) {
             ctx.font = 'bold 13px Segoe UI';
             ctx.fillText('Наклон панели: ' + tilt.toFixed(0) + '°   |   Перпендикулярно солнцу ✓', w / 2, h - 10);
 
-            // Дуга угла панели (от горизонта к панели)
+            // Дуга угла панели (от горизонта к панели) — острый угол, подпись на середине дуги
             if (tilt > 2) {
                 ctx.strokeStyle = 'rgba(229,57,53,0.4)';
                 ctx.lineWidth = 1.5;
@@ -611,9 +611,16 @@ function dirName(az) {
                 ctx.arc(panelCx, panelCy, 35, 0, tiltRad);
                 ctx.stroke();
                 ctx.setLineDash([]);
+
+                // Подпись внутри острого угла: по середине дуги
+                const arcMid = tiltRad / 2;
+                const labelR = 48;
                 ctx.fillStyle = '#e53935';
-                ctx.font = '11px Segoe UI';
-                ctx.fillText(tilt.toFixed(0) + '°', panelCx + 38, panelCy - 20);
+                ctx.font = '12px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText(tilt.toFixed(0) + '°',
+                    panelCx + labelR * Math.cos(arcMid),
+                    panelCy + labelR * Math.sin(arcMid) + 4);
             }
         }
 
