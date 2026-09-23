@@ -616,7 +616,7 @@ function dirName(az) {
                 ctx.setLineDash([]);
 
                 // Подпись внутри острого угла (слева от панели, между горизонтом и панелью)
-                const arcMid = Math.PI - tiltRad / 2;
+                const arcMid = Math.PI + tiltRad / 2;
                 const labelR = 48;
                 ctx.fillStyle = '#e53935';
                 ctx.font = '12px Segoe UI';
